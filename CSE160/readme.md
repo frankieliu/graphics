@@ -22,3 +22,15 @@ Start/Default Apps/Web Browser -> chrome
 # default PDF
 
 Right Click on PDF/Properties/Change -> chrome
+
+# git
+
+1. Download windows client
+2. Use mingw
+
+## existing repository
+
+1. git clone <repository>
+2. add files from vscode to directory
+3. git add, commit, push
+4. need to set email and user git config --global user.email | user.name
