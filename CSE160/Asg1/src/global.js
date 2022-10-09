@@ -23,6 +23,7 @@ const globals = {
         size: 5,                  // brush size
         shape: POINT,             // brush shape
         numberOfSegments: 5,      // circle
+        opacity: 20,
     },
 }
 

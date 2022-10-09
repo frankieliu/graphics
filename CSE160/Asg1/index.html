@@ -3,11 +3,19 @@
 
 <head>
   <title>Parcel Sandbox</title>
+  <link rel="stylesheet" href="src/styles.css">
   <meta charset="UTF-8" />
 </head>
 
 <body>
+  <div class="wrapper">
   <canvas id="webgl" width="400" height="400"></canvas>
+  <div id="canvasOver" width="400" height="400">
+    <!-- img src="https://www.w3schools.com/css/img_forest.jpg" width="400" height="400" /-->
+    <img id="imageSource" src="img/blue-morpho-butterfly-1-400x400.jpg.webp"
+       width="400" height="400"></img>
+  </div>
+  </div>
   <div style="display: flex; width: 400px">
     <div style="flex: 1;">
       <div>
@@ -25,11 +33,15 @@
     </div>
     <div id="rgb" style="flex: 1; background-color:blue"></div>
   </div>
-  <div>
+  <div class="dispInlinle">
     <button type="button" id="clear">Clear</button>
     <button type="button" id="point">Point</button>
     <button type="button" id="triangle">Triangle</button>
     <button type="button" id="circle">Circle</button>
+    <div class="dispInline" id="continuousBlock">
+      <input type="checkbox" id="continuous" checked>
+      <label for="checkbox">Cont</label>
+    </div>
   </div>
   <div>
     <input type="range" id="size" min="5" max="30" value="5">
@@ -39,8 +51,13 @@
     <input type="range" id="numberOfSegments" min="5" max="30" value="5">
     <label for="numberOfSegments"># Segments</label>
   </div>
-  <div style="display:none;">
-    <img id="source" src="img/blue-morpho-butterfly-1-400x400.jpg.webp" width="300" height="227"></img>
+  <div>
+    <input type="range" id="opacity" min="0" max="100" value="20">
+    <label for="opacity">Opacity</label>
+  </div>
+  <div>
+    <input type="text" id="imageInput" value="img/blue-morpho-butterfly-1-400x400.jpg.webp">
+    <label for="imageInput">Image src</label>
   </div>
   <script type="module" src="src/index.js"></script>
 </body>

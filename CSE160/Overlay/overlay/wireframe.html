@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang=en>
+  <head>
+    <meta charset=utf-8>
+    <title>WebGL wireframe overlay</title>
+    <style>
+        /* Reset */
+        *, ::before, ::after { box-sizing: border-box }
+        article, aside, details, figcaption, figure, footer, header, hgroup, menu, nav, section {
+            display: block;
+        }
+        body {
+            margin: 0;
+            background: #fff none;
+            color: #000;
+        }
+
+        main {
+            max-width: 60ch;
+            margin: 0 auto;
+        }
+        figure {
+            margin: 20px 0;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            aspect-ratio: 1.6 / 1;
+            margin: 0;
+            padding: 0;
+            border: 1px solid #000;
+        }
+
+        #canvas-wrapper {
+            position: relative;
+        }
+        #webgl-canvas {
+        }
+        #wireframe-canvas {
+            display: none;
+        }
+        html.wireframe-enabled #wireframe-canvas {
+            display: block;
+        }
+        #wireframe-canvas {
+            position: absolute;
+            top: 0;
+        }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p>
+        <button id=start-stop-anim>Start animation</button>
+        <label><input type=checkbox checked id=enable-wireframe> Enable wireframe
+      </p>
+      <figure id=canvas-wrapper>
+        <canvas id=webgl-canvas>
+          <p>You need JavaScript enabled and support for the <code>&lt;canvas&gt;</code> element for this to work.</p>
+        </canvas>
+        <canvas id=wireframe-canvas>
+          <p>You need JavaScript enabled and support for the <code>&lt;canvas&gt;</code> element for this to work.</p>
+        </canvas>
+      </figure>
+    </main>
+  </body>
+  <script src=gl-matrix-min.js></script>
+  <script src=wireframe.js></script>
+</html>

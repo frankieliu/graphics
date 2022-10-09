@@ -92,6 +92,31 @@ function setHtmlUI() {
   document.getElementById("numberOfSegments").onmouseup = function () {
     globals.select.numberOfSegments = parseInt(this.value);
   }
+
+  // Register changing top layer opacity
+  document.getElementById("opacity").oninput = function () {
+    document.getElementById("webgl").style.opacity = parseInt(this.value)/100;
+  }
+
+  // Register continuous drawing or single clicks
+  var cont = document.getElementById("continuous");
+  cont.onclick = function () {
+    if (cont.checked) {
+      globals.canvas.onmousemove = click;
+    } else {
+      globals.canvas.onmousemove = null;
+    }
+  }
+
+  var imageSource = document.getElementById("imageSource");
+  imageSource.onerror = function() {
+    console.log(imageSource.src + ": image not found");
+    imageSource.src = "img/blue-morpho-butterfly-1-400x400.jpg.webp";
+  }
+
+  document.getElementById("imageInput").onchange = function () {
+    document.getElementById("imageSource").src = this.value;
+  } 
 }
 
 export { setHtmlUI };
