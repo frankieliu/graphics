@@ -1,43 +1,48 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Parcel Sandbox</title>
-    <meta charset="UTF-8" />
-  </head>
 
-  <body>
-    <canvas id="webgl" width="400" height="400"></canvas>
-    <div>
-      <input type="range" id="red" min="0" max="255" value="0">
-      <label for="red">R</label>
-    </div> 
-    <div>
-      <input type="range" id="green" min="0" max="255" value="0">
-      <label for="green">G</label>
+<head>
+  <title>Parcel Sandbox</title>
+  <meta charset="UTF-8" />
+</head>
+
+<body>
+  <canvas id="webgl" width="400" height="400"></canvas>
+  <div style="display: flex;">
+    <div style="flex: 1;">
+      <div>
+        <input type="range" id="red" min="0" max="255" value="0">
+        <label for="red">R</label>
+      </div>
+      <div>
+        <input type="range" id="green" min="0" max="255" value="0">
+        <label for="green">G</label>
+      </div>
+      <div>
+        <input type="range" id="blue" min="0" max="255" value="0">
+        <label for="blue">B</label>
+      </div>
     </div>
-    <div>
-      <input type="range" id="blue" min="0" max="255" value="0">
-      <label for="blue">B</label>
-    </div>
-    <div>
-      <input type="range" id="size" min="5" max="30" value="5">
-      <label for="size">Size</label>
-    </div>
-    <div>
-      <button type="button" id="clear">Clear</button>
-    </div>
-    <div>
-      <button type="button" id="point">Point</button>
-      <button type="button" id="triangle">Triangle</button>
-      <button type="button" id="circle">Circle</button>
-    </div>
-    <div>
-      <input type="range" id="numberOfSegments" min="5" max="30" value="5">
-      <label for="numberOfSegments"># Segments</label>
-    </div>
-    <div style="display:none;">
-      <img id="source" src="img/blue-morpho-butterfly-1-400x400.jpg.webp" width="300" height="227"></img>
-    </div>
-    <script type="module" src="src/index.js"></script>
-  </body>
+    <div id="rgb" style="flex: 1; background-color:blue"></div>
+  </div>
+  <div>
+    <button type="button" id="clear">Clear</button>
+    <button type="button" id="point">Point</button>
+    <button type="button" id="triangle">Triangle</button>
+    <button type="button" id="circle">Circle</button>
+  </div>
+  <div>
+    <input type="range" id="size" min="5" max="30" value="5">
+    <label for="size">Size</label>
+  </div>
+  <div>
+    <input type="range" id="numberOfSegments" min="5" max="30" value="5">
+    <label for="numberOfSegments"># Segments</label>
+  </div>
+  <div style="display:none;">
+    <img id="source" src="img/blue-morpho-butterfly-1-400x400.jpg.webp" width="300" height="227"></img>
+  </div>
+  <script type="module" src="src/index.js"></script>
+</body>
+
 </html>

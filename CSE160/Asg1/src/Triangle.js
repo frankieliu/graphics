@@ -7,7 +7,7 @@ class Triangle {
     this.size = 5.0;
   }
   render() {
-
+    // console.log("Triangle: " + this.rgb);
     // Pass the color of a point to u_FragColor variable
     // gl.uniform4f(u_FragColor, 1.0, this.rgb[1]/255, this.rgb[2]/255, this.rgb[3]);
     globals.gl.uniform4f(globals.u_FragColor, this.rgb[0], this.rgb[1], this.rgb[2], 1.0);

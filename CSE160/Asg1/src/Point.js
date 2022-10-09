@@ -16,7 +16,6 @@ class Point {
     globals.gl.vertexAttrib3f(globals.a_Position, this.xy[0], this.xy[1], 0.0);
 
     // Pass the color of a point to u_FragColor variable
-    // gl.uniform4f(u_FragColor, 1.0, this.rgb[1]/255, this.rgb[2]/255, this.rgb[3]);
     globals.gl.uniform4f(globals.u_FragColor, this.rgb[0], this.rgb[1], this.rgb[2], 1.0);
 
     globals.gl.uniform1f(globals.u_PointSize, this.size);
