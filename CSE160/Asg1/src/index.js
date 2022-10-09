@@ -1,94 +1,187 @@
-/**
- * With codesandbox we import our functions from the files they live in
- * rather than import that file in the HTML file like we usually do
- *
- * ALSO NOTE that there is NO main function being called.
- * index.js IS your main function and the code written in it is run
- * on page load.
- */
-// import "./styles.css";
-import { initShaders } from "../lib/cuon-utils.js";
-import { Matrix4, Vector3 } from "../lib/cuon-matrix-cse160.js";
+import { getWebGLContext, initShaders, createProgram } from "../lib/cuon-utils.js";
+// import { set_g_tmp, g_tmp_array, touch_g_tmp } from './sample.js';
+import { POINT, TRIANGLE, CIRCLE, globals } from './global.js';
+import { Point } from './Point.js';
+import { Triangle } from './Triangle.js';
+import { Circle } from "./Circle.js";
 
-// HelloCube.js (c) 2012 matsuda
-// Vertex shader program
-// Vertex shader program
-const VSHADER_SOURCE = `
-   attribute vec2 aPosition;
-   uniform mat4 uModelMatrix; 
-   void main() {
-     gl_Position = uModelMatrix * vec4(aPosition, 0.0, 1.0);
-   }
-   `;
+function setupWebGL() {
+  // Retrieve <canvas> element
+  globals.canvas = document.getElementById('webgl');
 
-// Fragment shader program
-const FSHADER_SOURCE = `
-   #ifdef GL_ES
-   precision mediump float;
-   #endif
-   void main() {
-     gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-   }
-   `;
-
-// Retrieve <canvas> element
-var canvas = document.getElementById("webgl");
-
-// Get the rendering context for WebGL
-var gl = canvas.getContext("webgl");
-if (!gl) {
-  console.log("Failed to get the rendering context for WebGL");
+  // Get the rendering context for WebGL
+  // gl = getWebGLContext(canvas);
+  globals.gl = globals.canvas.getContext("webgl", { preserveDrawingBuffer: true });
+  if (!globals.gl) {
+    console.log('Failed to get the rendering context for WebGL');
+    return;
+  }
 }
 
-// Initialize shaders
-if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) {
-  console.log("Failed to intialize shaders.");
+function connectVariablesToGSL() {
+
+  // Vertex shader program
+  var VSHADER_SOURCE = `
+  attribute vec4 a_Position;
+  uniform float u_PointSize;
+  void main() {
+    gl_Position = a_Position;
+    gl_PointSize = u_PointSize;
+  }`;
+  
+  // Fragment shader program
+  var FSHADER_SOURCE = `
+  precision mediump float;
+  uniform vec4 u_FragColor;
+  void main() {
+    gl_FragColor = u_FragColor;
+  }`;
+
+  var VSHADER2 = `
+  attribute vec2 a_texCoord;
+  varying vec2 v_texCoord;
+    // pass the texCoord to fshader
+    v_texCoord = a_texCoord;
+  `;
+  
+  var FSHADER2 = `
+  uniform sampler2D u_image;
+  varying vec2 v_texCoord;
+  `
+
+  // Initialize shaders
+  if (!initShaders(globals.gl, VSHADER_SOURCE, FSHADER_SOURCE)) {
+    console.log('Failed to intialize shaders.');
+    return;
+  }
+
+  // // Get the storage location of a_Position
+  globals.a_Position = globals.gl.getAttribLocation(globals.gl.program, 'a_Position');
+  if (globals.a_Position < 0) {
+    console.log('Failed to get the storage location of a_Position');
+    return;
+  }
+
+  // Get the storage location of u_FragColor
+  globals.u_FragColor = globals.gl.getUniformLocation(globals.gl.program, 'u_FragColor');
+  if (!globals.u_FragColor) {
+    console.log('Failed to get the storage location of u_FragColor');
+    return;
+  }
+
+  // Get the storage location for u_PointSize
+  globals.u_PointSize = globals.gl.getUniformLocation(globals.gl.program, 'u_PointSize');
+  if (!globals.u_PointSize) {
+    console.log('Failed to get the storage location of u_PointSize');
+    return;
+  }
 }
 
-// Set clear color
-gl.clearColor(0.5, 0.5, 0.5, 1.0);
+function RenderAllShapes() {
+  // Clear <canvas>
+  globals.gl.clear(globals.gl.COLOR_BUFFER_BIT);
 
-gl.clear(gl.COLOR_BUFFER_BIT);
-
-const v1 = { x: -0.5, y: -0.5 };
-const v2 = { x:  0.5, y: -0.5 };
-const v3 = { x: -0.5, y:  0.5 };
-const vertices = new Float32Array([v1.x, v1.y, v2.x, v2.y, v3.x, v3.y]);
-
-const vertexBuffer = gl.createBuffer();
-if (!vertexBuffer) {
-  console.log("Failed to create the buffer object");
+  var len = globals.shapes.length;
+  for (var i = 0; i < len; i++) {
+    globals.shapes[i].render();
+  }
 }
 
-// Bind the buffer gl and write vertex data into buffer
-gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+function convertCoordinatesEventToGL(ev) {
+  var x = ev.clientX; // x coordinate of a mouse pointer
+  var y = ev.clientY; // y coordinate of a mouse pointer
+  var rect = ev.target.getBoundingClientRect();
 
-// Get position attribute variable
-// Defined above in VSHADER_SOURCE
-const aPosPtr = gl.getAttribLocation(gl.program, "aPosition");
-if (aPosPtr < 0) {
-  console.error("Could not find aPosition ptr");
+  x = ((x - rect.left) - globals.canvas.width / 2) / (globals.canvas.width / 2);
+  y = (globals.canvas.height / 2 - (y - rect.top)) / (globals.canvas.height / 2);
+
+  return [x, y];
 }
 
-// Set the attribute and enable it
-gl.vertexAttribPointer(aPosPtr, 2, gl.FLOAT, false, 0, 0);
-gl.enableVertexAttribArray(aPosPtr);
+function click(ev) {
+  var [x, y] = convertCoordinatesEventToGL(ev);
 
-// Create a matrix
-const M = new Matrix4();
+  // Store the coordinates to g_points array
+  var aShape;
+  switch (globals.selectedShape) {
+    case POINT:
+      aShape = new Point();
+      break;
+    case TRIANGLE:
+      aShape = new Triangle();
+      break;
+    case CIRCLE:
+      aShape = new Circle();
+      aShape.numberOfSegments = globals.selectedNumberOfSegments;
+      break;
+    default:
+      return;
+  }
+  aShape.xy = [x, y];
+  aShape.rgb = globals.selectedColor.slice();
+  aShape.size = globals.selectedSize;
 
-function drawSpaceship(gl, matrix) {
-  // get transformation matrix
-  const uModelMatrixPtr = gl.getUniformLocation(gl.program, "uModelMatrix");
-  const M1 = new Matrix4();
-  M1.set(matrix);
-  M1.translate(0, 0, 0);
-  M1.rotate(45, 0, 0, 1);
-  M1.scale(1, 1, 1);
-  gl.uniformMatrix4fv(uModelMatrixPtr, false, M1.elements);
-  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  globals.shapes.push(aShape);
+
+  RenderAllShapes();
+}
+
+function readColor() {
+  var ids = ["red", "green", "blue"];
+  for (var i = 0; i < 3; i++) {
+    globals.selectedColor[i] = parseInt(document.getElementById(ids[i]).value);
+  }
+}
+
+function setHtmlUI() {
+
+  // Register function (event handler) to be called on a mouse press
+  globals.canvas.onmousedown = click;
+  globals.canvas.onmousemove = click;
+  
+  // Register events for color
+  document.getElementById("red").onmouseup = function () { readColor(); }
+  document.getElementById("green").onmouseup = function () { readColor(); }
+  document.getElementById("blue").onmouseup = function () { readColor(); }
+
+  // Register event for size changes 
+  document.getElementById("size").onmouseup = function () {
+    globals.selectedSize = parseInt(this.value);
+  };
+
+  // Register event for clearing canvas 
+  document.getElementById("clear").onmouseup = function () {
+    globals.shapes = [];
+    RenderAllShapes();
+  }
+
+  // Register brush shape
+  document.getElementById("point").onmouseup = function () { globals.selectedShape = POINT; }
+  document.getElementById("triangle").onmouseup = function () { globals.selectedShape = TRIANGLE; }
+  document.getElementById("circle").onmouseup = function () { globals.selectedShape = CIRCLE; }
+
+  // Register number of segments
+  document.getElementById("numberOfSegments").onmouseup = function () {
+    globals.selectedNumberOfSegments = parseInt(this.value);
+  }
+}
+
+function main() {
+  // get canvas and gl context
+  setupWebGL();
+
+  // compile shader programs, attach js variables to GLSL 
+  connectVariablesToGSL();
+
+  // set html inputs
+  setHtmlUI();
+
+  // Specify the color for clearing <canvas>
+  globals.gl.clearColor(0.0, 0.0, 0.0, 1.0);
+
+  // Clear <canvas>
+  globals.gl.clear(globals.gl.COLOR_BUFFER_BIT);
 
 }
 
-drawSpaceship(gl, M);
+main();
