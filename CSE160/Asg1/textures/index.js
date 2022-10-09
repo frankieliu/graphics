@@ -1,8 +1,10 @@
-import { createProgram } from "../lib/cuon-utils.js";
-import { globals } from "./global.js";
+// WebGL2 - 2D - DrawImage with full options
+// from https://webgl2fundamentals.org/webgl/webgl-2d-drawimage-03.html
 
-function setupTexShader() {
-  var VSHADER = `
+"use strict";
+
+var vertexShaderSource = `#version 300 es
+
 in vec4 a_position;
 in vec2 a_texcoord;
 
@@ -15,9 +17,9 @@ void main() {
   gl_Position = u_matrix * a_position;
   v_texcoord = (u_textureMatrix * vec4(a_texcoord, 0, 1)).xy;
 }
-  `;
+`;
 
-  var FSHADER = `
+var fragmentShaderSource = `#version 300 es
 precision highp float;
 
 in vec2 v_texcoord;
@@ -29,14 +31,20 @@ out vec4 outColor;
 void main() {
    outColor = texture(u_texture, v_texcoord);
 }
-  `;
+`;
 
-  var canvas = globals.canvas;
-  var gl = globals.gl;
-  if (!gl) { return; }
+function main() {
+  // Get A WebGL context
+  /** @type {HTMLCanvasElement} */
+  var canvas = document.querySelector("#canvas");
+  var gl = canvas.getContext("webgl2");
+  if (!gl) {
+    return;
+  }
 
-  // setup GLSL program
-  var program = createProgram(gl, VSHADER, FSHADER);
+  // Use our boilerplate utils to compile the shaders and link into a program
+  var program = webglUtils.createProgramFromSources(gl,
+      [vertexShaderSource, fragmentShaderSource]);
 
   // look up where the vertex data needs to go.
   var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
@@ -134,6 +142,7 @@ void main() {
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
       gl.generateMipmap(gl.TEXTURE_2D);
     });
+    requestCORSIfNotSameOrigin(img, url)
     img.src = url;
 
     return textureInfo;
@@ -302,3 +311,16 @@ void main() {
 }
 
 main();
+
+
+// This is needed if the images are not on the same domain
+// NOTE: The server providing the images must give CORS permissions
+// in order to be able to use the image with WebGL. Most sites
+// do NOT give permission.
+// See: http://webgl2fundamentals.org/webgl/lessons/webgl-cors-permission.html
+function requestCORSIfNotSameOrigin(img, url) {
+  if ((new URL(url, window.location.href)).origin !== window.location.origin) {
+    img.crossOrigin = "";
+  }
+}
+
