@@ -6,24 +6,24 @@ const globals = {
     canvas: null,
     gl: null,
 
-    a_Position: null,
+    program: [
+        {
+            a_Position: null,
+            u_FragColor: null,
+            u_PointSize: null,
+            
+            // drawing elements
+            shapes: [],
+        },
+    ],
 
-    // drawing elements
-    shapes: [],
-
-    // shader
-    u_FragColor: null,
-    selectedColor: [1.0, 1.0, 1.0],
-
-    // brush size
-    u_PointSize: null,
-    selectedSize: 5,
-
-    // shape
-    selectedShape: POINT,
-    
-    // circle
-    selectedNumberOfSegments: 5,
+    // ui selections
+    select: {
+        color: [255, 255, 255],
+        size: 5,                  // brush size
+        shape: POINT,             // brush shape
+        numberOfSegments: 5,      // circle
+    },
 }
 
 export { POINT, TRIANGLE, CIRCLE, globals };

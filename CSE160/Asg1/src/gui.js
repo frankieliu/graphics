@@ -22,7 +22,7 @@ function click(ev) {
 
   // Store the coordinates to g_points array
   var aShape;
-  switch (globals.selectedShape) {
+  switch (globals.select.shape) {
     case POINT:
       aShape = new Point();
       break;
@@ -31,17 +31,17 @@ function click(ev) {
       break;
     case CIRCLE:
       aShape = new Circle();
-      aShape.numberOfSegments = globals.selectedNumberOfSegments;
+      aShape.numberOfSegments = globals.select.numberOfSegments;
       break;
     default:
       return;
   }
 
   aShape.xy = [x, y];
-  aShape.rgb = globals.selectedColor.map(n => n/255);
-  aShape.size = globals.selectedSize;
+  aShape.rgb = globals.select.color.map(n => n/255);
+  aShape.size = globals.select.size;
 
-  globals.shapes.push(aShape);
+  globals.program[0].shapes.push(aShape);
 
   RenderAllShapes();
 }
@@ -49,9 +49,9 @@ function click(ev) {
 function readColor() {
   var ids = ["red", "green", "blue"];
   for (var i = 0; i < 3; i++) {
-    globals.selectedColor[i] = parseInt(document.getElementById(ids[i]).value);
+    globals.select.color[i] = parseInt(document.getElementById(ids[i]).value);
   }
-  var color = "rgb(" + globals.selectedColor.map(n => String(n)).join(",") + ")";
+  var color = "rgb(" + globals.select.color.map(n => String(n)).join(",") + ")";
   document.getElementById("rgb").style.backgroundColor = color;
 }
 
@@ -66,25 +66,31 @@ function setHtmlUI() {
   document.getElementById("green").oninput = function () { readColor(); }
   document.getElementById("blue").oninput = function () { readColor(); }
 
+  document.getElementById("red").value = globals.select.color[0];
+  document.getElementById("green").value = globals.select.color[1];
+  document.getElementById("blue").value = globals.select.color[2];
+
+  readColor();
+
   // Register event for size changes 
   document.getElementById("size").onmouseup = function () {
-    globals.selectedSize = parseInt(this.value);
+    globals.select.size = parseInt(this.value);
   };
 
   // Register event for clearing canvas 
   document.getElementById("clear").onmouseup = function () {
-    globals.shapes = [];
+    globals.program[0].shapes = [];
     RenderAllShapes();
   }
 
   // Register brush shape
-  document.getElementById("point").onmouseup = function () { globals.selectedShape = POINT; }
-  document.getElementById("triangle").onmouseup = function () { globals.selectedShape = TRIANGLE; }
-  document.getElementById("circle").onmouseup = function () { globals.selectedShape = CIRCLE; }
+  document.getElementById("point").onmouseup = function () { globals.select.shape = POINT; }
+  document.getElementById("triangle").onmouseup = function () { globals.select.shape = TRIANGLE; }
+  document.getElementById("circle").onmouseup = function () { globals.select.shape = CIRCLE; }
 
   // Register number of segments
   document.getElementById("numberOfSegments").onmouseup = function () {
-    globals.selectedNumberOfSegments = parseInt(this.value);
+    globals.select.numberOfSegments = parseInt(this.value);
   }
 }
 

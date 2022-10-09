@@ -7,11 +7,12 @@ class Circle {
     this.rgb = [0.0, 0.0, 0.0];
     this.size = 15.0;
     this.numberOfSegments = 5;
+    this.prog = globals.program[0];
   }
+
   render() {
     // Pass the color of a point to u_FragColor variable
-    // gl.uniform4f(u_FragColor, 1.0, this.rgb[1]/255, this.rgb[2]/255, this.rgb[3]);
-    globals.gl.uniform4f(globals.u_FragColor, this.rgb[0], this.rgb[1], this.rgb[2], 1.0);
+    globals.gl.uniform4f(this.prog.u_FragColor, this.rgb[0], this.rgb[1], this.rgb[2], 1.0);
 
     var d = this.size / 200.;
     var angleStep = 2.0 * Math.PI / this.numberOfSegments;
@@ -25,6 +26,7 @@ class Circle {
         this.xy[0] + vec2[0], this.xy[1] + vec2[1]]);
     }
   }
+
 }
 
 export { Circle };
