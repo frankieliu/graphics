@@ -1,4 +1,10 @@
+# Course
+
 [course](https://canvas.ucsc.edu/courses/56622)
+
+# Videos
+
+[playlist](https://www.youtube.com/watch?v=dZOy1n0d8r0&list=PLbyTU_tFIkcMK5FiV6btXxHQAy15p0j7X)
 
 # import
 
@@ -34,3 +40,4 @@ Right Click on PDF/Properties/Change -> chrome
 2. add files from vscode to directory
 3. git add, commit, push
 4. need to set email and user git config --global user.email | user.name
+

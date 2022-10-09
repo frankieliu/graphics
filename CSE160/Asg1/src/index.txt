@@ -1,0 +1,252 @@
+import { getWebGLContext, initShaders } from "../lib/cuon-utils.js";
+
+const POINT = 0;
+const TRIANGLE = 1;
+const CIRCLE = 2;
+
+// Global variables
+var canvas;       // canvas element
+var gl;           // rendering context
+var a_Position;   //
+var g_shapes = [];  // The array for the position of a mouse press
+
+var u_FragColor;
+var g_selectedColor = [1.0,1.0,1.0]; // Selected color
+
+var u_PointSize;
+var g_selectedSize = 5;              // Selected size
+
+var g_selectedShape = POINT;
+
+function setupWebGL() {
+  // Retrieve <canvas> element
+  canvas = document.getElementById('webgl');
+ 
+  // Get the rendering context for WebGL
+  // gl = getWebGLContext(canvas);
+  gl = canvas.getContext("webgl", { preserveDrawingBuffer: true});
+  if (!gl) {
+    console.log('Failed to get the rendering context for WebGL');
+    return;
+  }
+}
+
+function connectVariablesToGSL() {
+
+  // Vertex shader program
+  var VSHADER_SOURCE = `
+  attribute vec4 a_Position;
+  uniform float u_PointSize;
+  void main() {
+    gl_Position = a_Position;
+    gl_PointSize = u_PointSize;
+  }`;
+
+  // Fragment shader program
+  var FSHADER_SOURCE = `
+  precision mediump float;
+  uniform vec4 u_FragColor;
+  void main() {
+    gl_FragColor = u_FragColor;
+  }`;
+
+  // Initialize shaders
+  if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) {
+    console.log('Failed to intialize shaders.');
+    return;
+  }
+
+  // // Get the storage location of a_Position
+  a_Position = gl.getAttribLocation(gl.program, 'a_Position');
+  if (a_Position < 0) {
+    console.log('Failed to get the storage location of a_Position');
+    return;
+  }
+
+  // Get the storage location of u_FragColor
+  u_FragColor = gl.getUniformLocation(gl.program, 'u_FragColor');
+  if (!u_FragColor) {
+    console.log('Failed to get the storage location of u_FragColor');
+    return;
+  }
+
+  // Get the storage location for u_PointSize
+  u_PointSize = gl.getUniformLocation(gl.program, 'u_PointSize');
+  if(!u_PointSize) {
+    console.log('Failed to get the storage location of u_PointSize');
+    return;
+  }
+}
+
+class Point {
+  constructor() {
+    this.xy =  [0,0];
+    this.rgb = [0.0,0.0,0.0];
+    this.size = 5.0;
+  }
+  render() {
+
+    // Quit using the buffer to send the attribute
+    gl.disableVertexAttribArray(a_Position);
+    // gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([xy[0], xy[1]]), gl.DYNAMIC_DRAW);
+    
+    // Pass the position of a point to a_Position variable
+    gl.vertexAttrib3f(a_Position, this.xy[0], this.xy[1], 0.0);
+
+    // Pass the color of a point to u_FragColor variable
+    // gl.uniform4f(u_FragColor, 1.0, this.rgb[1]/255, this.rgb[2]/255, this.rgb[3]);
+    gl.uniform4f(u_FragColor, this.rgb[0], this.rgb[1], this.rgb[2], 1.0);
+
+    gl.uniform1f(u_PointSize, this.size);
+
+    // Draw
+    gl.drawArrays(gl.POINTS, 0, 1);
+
+  }
+}
+
+class Triangle {
+  constructor() {
+    this.xy =  [0,0];
+    this.rgb = [0.0,0.0,0.0];
+    this.size = 5.0;
+  }
+  render() {
+
+    // Pass the position of a point to a_Position variable
+    gl.vertexAttrib3f(a_Position, this.xy[0], this.xy[1], 0.0);
+
+    // Pass the color of a point to u_FragColor variable
+    // gl.uniform4f(u_FragColor, 1.0, this.rgb[1]/255, this.rgb[2]/255, this.rgb[3]);
+    gl.uniform4f(u_FragColor, this.rgb[0], this.rgb[1], this.rgb[2], 1.0);
+
+    gl.uniform1f(u_PointSize, this.size);
+
+    // Draw
+    drawTriangle(
+      [this.xy[0], this.xy[1], 
+      this.xy[0]+this.size/200., this.xy[1],
+      this.xy[0], this.xy[1]+this.size/200.]);
+  }
+}
+
+function RenderAllShapes() {
+  // Clear <canvas>
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  var len = g_shapes.length;
+  for (var i = 0; i < len; i++) {
+    g_shapes[i].render();
+  }
+}
+
+function convertCoordinatesEventToGL(ev) {
+  var x = ev.clientX; // x coordinate of a mouse pointer
+  var y = ev.clientY; // y coordinate of a mouse pointer
+  var rect = ev.target.getBoundingClientRect();
+
+  x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
+  y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
+
+  return [x,y];
+}
+
+function click(ev) {
+  var [x, y] = convertCoordinatesEventToGL(ev);
+  
+  // Store the coordinates to g_points array
+  var point;  
+  switch (g_selectedShape) {
+    case POINT:
+      point = new Point();
+      break;
+    case TRIANGLE:
+      point = new Triangle();
+      break;
+    default:
+      return;
+  }
+  point.xy = [x,y];
+  point.rgb =  g_selectedColor.slice();
+  point.size = g_selectedSize;
+
+  g_shapes.push(point);
+  
+  RenderAllShapes();
+}
+
+function readColor() {
+  var ids = ["red","green","blue"];
+  for (var i=0;i<3;i++) {
+    g_selectedColor[i] = parseInt(document.getElementById(ids[i]).value);
+  }
+}
+
+function setHtmlUI() {
+  // Register function (event handler) to be called on a mouse press
+  canvas.onmousedown = click;
+  canvas.onmousemove = click;
+
+  // Register events for color
+  document.getElementById("red").onmouseup = function() { readColor(); }
+  document.getElementById("green").onmouseup = function() { readColor(); }
+  document.getElementById("blue").onmouseup = function() { readColor(); }
+  
+  // Register event for size changes 
+  document.getElementById("size").onmouseup = function() { 
+    g_selectedSize = parseInt(this.value);
+  };
+  
+  // Register event for clearing canvas 
+  document.getElementById("clear").onmouseup = function() {
+    g_shapes = [];
+    RenderAllShapes();
+  }
+
+  // Register brush shape
+  document.getElementById("point").onmouseup = function() { g_selectedShape = POINT; }
+  document.getElementById("triangle").onmouseup = function() { g_selectedShape = TRIANGLE; }
+}
+
+function drawTriangle(vertices) {
+  var n = 3; // The number of vertices
+
+  // Create a buffer object
+  var vertexBuffer = gl.createBuffer();
+  if (!vertexBuffer) {
+    console.log('Failed to create the buffer object');
+    return -1;
+  }
+
+  // Bind the buffer object to target
+  gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+  // Write date into the buffer object
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.DYNAMIC_DRAW);
+
+  // Assign the buffer object to a_Position variable
+  gl.vertexAttribPointer(a_Position, 2, gl.FLOAT, false, 0, 0);
+
+  // Enable the assignment to a_Position variable
+  gl.enableVertexAttribArray(a_Position);
+
+  gl.drawArrays(gl.TRIANGLES, 0, n);
+}
+
+function main() {
+  // get canvas and gl context
+  setupWebGL();
+
+  // compile shader programs, attach js variables to GLSL 
+  connectVariablesToGSL();
+
+  // set html inputs
+  setHtmlUI();
+
+  // Specify the color for clearing <canvas>
+  gl.clearColor(0.0, 0.0, 0.0, 1.0);
+
+  // Clear <canvas>
+  gl.clear(gl.COLOR_BUFFER_BIT);
+}
+
+main();
