@@ -59,7 +59,11 @@ function setHtmlUI() {
 
   // Register function (event handler) to be called on a mouse press
   globals.canvas.onmousedown = click;
-  globals.canvas.onmousemove = click;
+  globals.canvas.onmousemove = function (ev) {
+     if (ev.buttons == 1) {
+      click(ev);
+     }
+  };
   
   // Register events for color
   document.getElementById("red").oninput = function () { readColor(); }
@@ -104,9 +108,13 @@ function setHtmlUI() {
     if (cont.checked) {
       globals.canvas.onmousemove = click;
     } else {
-      globals.canvas.onmousemove = null;
+      globals.canvas.onmousemove = function (ev) {
+        if (ev.buttons == 1) {
+          click(ev);
+        }
+      }
     }
-  }
+  };
 
   var imageSource = document.getElementById("imageSource");
   imageSource.onerror = function() {
