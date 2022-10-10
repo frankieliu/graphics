@@ -117,6 +117,11 @@ function setHtmlUI() {
   document.getElementById("imageInput").onchange = function () {
     document.getElementById("imageSource").src = this.value;
   } 
+
+  document.getElementById("butterfly").onclick = function () {
+    globals.program[0].shapes = globals.program[0].butterfly.slice()
+    RenderAllShapes();
+  }
 }
 
 export { setHtmlUI };

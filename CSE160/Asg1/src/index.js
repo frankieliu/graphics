@@ -1,6 +1,7 @@
 import { globals } from './global.js';
 import { setHtmlUI } from './gui.js';
 import { setupSimpleShader } from "./simpleShader.js";
+import { setupButterfly } from "./butterflyTriangles.js";
 
 function setupWebGL() {
   // Retrieve <canvas> element
@@ -32,6 +33,9 @@ function main() {
 
   // set html inputs
   setHtmlUI();
+
+  // set up butterfly triangles
+  setupButterfly();
 
   // clear canvas
   clearCanvas();

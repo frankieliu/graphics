@@ -41,3 +41,10 @@ Right Click on PDF/Properties/Change -> chrome
 3. git add, commit, push
 4. need to set email and user git config --global user.email | user.name
 
+# python
+
+miniconda
+pandas
+matplotlib
+scikit-image
+-c conda-forge 

@@ -21,6 +21,22 @@ class Triangle {
   }
 }
 
+class DelaunayTriangle {
+  constructor() {
+    this.vertices = [];
+    this.rgb = [];
+    this.prog = globals.program[0];
+  }
+  render() {
+    globals.gl.uniform4f(this.prog.u_FragColor, this.rgb[0], this.rgb[1], this.rgb[2], 1.0);
+
+    drawTriangle(
+      [this.vertices[0][0], this.vertices[0][1],
+       this.vertices[1][0], this.vertices[1][1],
+       this.vertices[2][0], this.vertices[2][1]]);
+  }
+}
+
 function drawTriangle(vertices) {
   var prog = globals.program[0];
 
@@ -47,4 +63,4 @@ function drawTriangle(vertices) {
   globals.gl.drawArrays(globals.gl.TRIANGLES, 0, n);
 }
 
-export { Triangle, drawTriangle };
+export { Triangle, DelaunayTriangle, drawTriangle };

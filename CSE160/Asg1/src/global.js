@@ -14,6 +14,9 @@ const globals = {
             
             // drawing elements
             shapes: [],
+
+            // Triangles for butterfly
+            butterfly: [],
         },
     ],
 
