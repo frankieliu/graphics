@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Parcel Sandbox</title>
+  <link rel="stylesheet" href="src/styles.css">
+  <meta charset="UTF-8" />
+</head>
+
+<body>
+  <div class="wrapper">
+  <canvas id="webgl" width="400" height="400"></canvas>
+
+  <!-- div id="canvasOver" width="400" height="400">
+    <img id="imageSource" src="img/blue-morpho-butterfly-1-400x400.jpg.webp"
+       width="400" height="400"></img>
+  </div -->
+
+  </div>
+  <div style="display: flex; width: 400px">
+    <div style="flex: 1;">
+      <div>
+        <input type="range" id="red" min="0" max="255" value="255">
+        <label for="red">R</label>
+      </div>
+      <div>
+        <input type="range" id="green" min="0" max="255" value="255">
+        <label for="green">G</label>
+      </div>
+      <div>
+        <input type="range" id="blue" min="0" max="255" value="255">
+        <label for="blue">B</label>
+      </div>
+    </div>
+    <div id="rgb" style="flex: 1; background-color:blue"></div>
+  </div>
+  <div class="dispInlinle">
+    <button type="button" id="clear">Clear</button>
+    <button type="button" id="point">Point</button>
+    <button type="button" id="triangle">Triangle</button>
+    <button type="button" id="circle">Circle</button>
+    <div class="dispInline" id="continuousBlock">
+      <input type="checkbox" id="continuous" unhecked>
+      <label for="checkbox">Cont</label>
+    </div>
+    <button type="button" id="butterfly">Butterfly</button>
+  </div>
+  <div>
+    <input type="range" id="size" min="5" max="30" value="5">
+    <label for="size">Size</label>
+  </div>
+  <div>
+    <input type="range" id="numberOfSegments" min="5" max="30" value="5">
+    <label for="numberOfSegments"># Segments</label>
+  </div>
+  <div>
+    <input type="range" id="opacity" min="0" max="100" value="20">
+    <label for="opacity">Opacity</label>
+  </div>
+  <div>
+    <input type="range" id="globalRotation" min="0" max="90" value="20">
+    <label for="globalRotation">Global Rotation</label>
+  </div>
+  <div>
+    <input type="text" id="imageInput" value="img/blue-morpho-butterfly-1-400x400.jpg.webp">
+    <label for="imageInput">Image src</label>
+  </div>
+  <script type="module" src="src/index.js"></script>
+  <div>
+    <p>Features:</p>
+    <ul>
+      <li>RGB preview: next to RGB sliders is the a preview of the color selected.</li>
+      <li>Clear: clears any drawn shapes.</li>
+      <li>Point, Triangle, Circle: Brush shapes.</li>
+      <li>Cont: when checked, continuously draws shapes (without mouse click).</li>
+      <li>Butterfly: shows the drawing (turn opacity to 100).
+        Note that these shapes were algorithmically derived from the the underlying
+        butterfly image.  Read in img/butterfly.js on the generation details.
+      </li>
+      <li>Size: the size of the brush.</li>
+      <li># Segments: the number of segments used for Circle brush.</li>
+      <li>Opacity: controls the opacity of the drawing layer.
+        Turn to 100 to hide the underlying image.</li>
+      <li>Image src: enter a valid url and image will show up in the background.
+        If the image is invalid it will default to the butterfly image.
+        Copy and paste the following as an example:
+        https://www.w3schools.com/css/img_forest.jpg
+      </li>
+    </ul>
+  </div>
+</body>
+
+</html>
