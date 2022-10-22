@@ -16,7 +16,7 @@ class Cube {
     globals.gl.uniform4f(this.prog.u_FragColor, this.rgb[0], this.rgb[1], this.rgb[2], 1.0);
 
     // Pass the matrix
-    globals.gl.uniformMatrix4f(this.prog.u_ModelMatrix, false, this.matrix.elements);
+    globals.gl.uniformMatrix4fv(this.prog.u_ModelMatrix, false, this.matrix.elements);
 
     // Sharing 0,0,0 
     draw3DTriangle([0, 0, 0, 0, 0, 1, 0, 1, 1]);

@@ -105,6 +105,7 @@ function setHtmlUI() {
   // Register changing global rotation
   document.getElementById("globalRotation").oninput = function () {
     globals.select.globalRotation = parseInt(this.value);
+    RenderAllShapes();
   }
 
   // Register continuous drawing or single clicks
