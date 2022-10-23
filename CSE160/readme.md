@@ -161,3 +161,74 @@ be a const
 
 # canvas background image
 [background](https://stackoverflow.com/questions/14012768/html5-canvas-background-image)
+
+# anaconda m2-base shell commands
+conda install m2-base
+conda search m2-*
+conda install m2-zip
+
+windows search: anaconda prompt (miniconda3)
+
+(base) c:\Users\adam> bash    # Yay you can have a bash shell
+
+## location of / /c/Users/adam/miniconda3/Library
+
+/c/Users/adam/miniconda3/Library/usr/bin/bash.exe
+
+## set -o vi
+
+So you can use vi in the command line
+
+# adding wireframe
+https://www.mattdesl.com/
+Need to read an article
+net November 2017 — Stylized Wireframe Rendering in WebGL
+
+# chinedufn skeleton animation
+https://github.com/chinedufn/skeletal-animation-system
+
+# bones in threejs
+https://threejs.org/docs/#api/en/objects/Skeleton
+
+# skinning in webgl
+https://webglfundamentals.org/webgl/lessons/webgl-skinning.html
+
+# web-gl game development
+Skinning and good discussion
+http://what-when-how.com/Tutorial/topic-666frc6uv/WebGL-Game-Development-298.html
+
+# texas cs354
+Good lecture on on bones
+https://www.cs.utexas.edu/~theshark/courses/cs354/lectures/cs354-15.pdf
+
+Refers to this
+https://www.gamedev.net/articles/programming/graphics/skinned-mesh-animation-using-matrices-r3577/
+
+But hard to understand
+
+# three js animation
+https://discoverthreejs.com/book/first-steps/animation-system/
+
+Birds - stork parrot flamingo
+
+# Fun with webgl
+https://www.youtube.com/watch?v=ZkHHjNec3l0&list=PLMinhigDWz6emRKVkVIEAaePW7vtIkaIF&index=9
+
+SketchPunkLabs
+
+# three.js walking
+https://codepen.io/nik-lever/pen/xMGwqq
+
+# wireframe overlay with canvas 2d
+https://geoffrichards.co.uk/blog/2022/01/webgl-wireframe/
+
+# interpolating linear and spherical animation
+https://veeenu.github.io/blog/implementing-skeletal-animation/
+
+# understanding different loaders javascript
+
+# code quick navigation
+Ctrl-P (Open)
+You can remove things that you don't need anymore
+
+Ctrl-Tab (Only open )

@@ -63,9 +63,9 @@ function setupSimpleShader() {
     return;
   }
   
-  globals.u_GlobalRotateMatrix = globals.gl.getUniformLocation(glsl,
+  prog.u_GlobalRotateMatrix = globals.gl.getUniformLocation(glsl,
     'u_GlobalRotateMatrix');
-  if (!globals.u_GlobalRotateMatrix) {
+  if (!prog.u_GlobalRotateMatrix) {
     console.log('Failed to get the storage location of u_GlobalRotateMatrix');
     return;
   }

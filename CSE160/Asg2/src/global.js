@@ -1,10 +1,7 @@
-const POINT = 0;
-const TRIANGLE = 1;
-const CIRCLE = 2;
-
 const globals = {
     canvas: null,
     gl: null,
+    stats: null,
 
     program: [
         {
@@ -12,6 +9,9 @@ const globals = {
             u_FragColor: null,
             u_PointSize: null,
             u_ModelMatrix: null,
+            // Assignment asks for gAnimalGlobalRotation
+            // Here we just use the same name as in the
+            // vertex shader program
             u_GlobalRotateMatrix: null,
             
             // drawing elements
@@ -25,12 +25,18 @@ const globals = {
     // ui selections
     select: {
         color: [255, 255, 255],
-        size: 5,                  // brush size
-        shape: POINT,             // brush shape
-        numberOfSegments: 5,      // circle
-        opacity: 20,
+        size: 4,                  // scale of everything
+        opacity: 100,
         globalRotation: 20,       // global rotation angle (0,90)
+        animate: false,           // whether or not to animate
     },
+
+    animate: {
+        index: 0, 
+        animation: [],
+        startTime: 0
+    }
+    
 }
 
-export { POINT, TRIANGLE, CIRCLE, globals };
+export { globals };

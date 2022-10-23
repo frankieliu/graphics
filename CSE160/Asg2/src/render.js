@@ -1,8 +1,8 @@
 import { globals } from "./global.js";
 
-function RenderAllShapes() {
+function renderScene() {
   // Clear <canvas>
-  globals.gl.clear(globals.gl.COLOR_BUFFER_BIT);
+  globals.gl.clear(globals.gl.COLOR_BUFFER_BIT | globals.gl.DEPTH_BUFFER_BIT);
 
   var len = globals.program[0].shapes.length;
   for (var i = 0; i < len; i++) {
@@ -10,4 +10,4 @@ function RenderAllShapes() {
   }
 }
 
-export { RenderAllShapes };
+export { renderScene };

@@ -1,9 +1,9 @@
 import { globals } from "./global.js";
 import { Matrix4 } from "../lib/cuon-matrix-cse160.js";
-import { draw3DTriangle } from "./Triangle.js";
-import { WireCubePositions, WireCubeIndices } from "./WireCube.js";
+import { SpherePositions, SphereTriIndices } from "./WireCube.js";
 
-class Cube {
+class Sphere {
+
   constructor() {
     this.rgb = [0.0, 0.0, 0.0];
     this.prog = globals.program[0];
@@ -25,16 +25,16 @@ class Cube {
   createVertices() {
     if (!this.vertices) {
       var v = [];
-      for(var i = 0; i < WireCubeIndices.length; i++) {
+      for(var i = 0; i < SphereTriIndices.length; i++) {
         for(var j = 0; j < 3; j++) {
-          v.push(WireCubePositions[WireCubeIndices[i]*3 + j]);
+          v.push(SpherePositions[SphereTriIndices[i]*3 + j]);
         }
       }
       this.vertices = new Float32Array(v);
     }
   }
 
-  drawCube(matrix) {
+  drawSphere(matrix) {
     this.matrix = matrix;
     this.render();
   }
@@ -66,30 +66,9 @@ class Cube {
     // Enable the assignment to a_Position variable
     globals.gl.enableVertexAttribArray(prog.a_Position);
 
-    globals.gl.drawArrays(globals.gl.TRIANGLES, 0, WireCubeIndices.length);
+    globals.gl.drawArrays(globals.gl.TRIANGLES, 0, SphereTriIndices.length);
   }
 
-  draw3DTrianglesSlow() {
-    // Sharing 0,0,0 
-    draw3DTriangle([0, 0, 0, 0, 0, 1, 0, 1, 1]);
-    draw3DTriangle([0, 0, 0, 0, 1, 0, 0, 1, 1]);
-
-    draw3DTriangle([0, 0, 0, 0, 0, 1, 1, 0, 1]);
-    draw3DTriangle([0, 0, 0, 1, 0, 1, 1, 0, 1]);
-
-    draw3DTriangle([0, 0, 0, 0, 1, 0, 1, 1, 0]);
-    draw3DTriangle([0, 0, 0, 1, 0, 0, 1, 1, 0]);
-
-    // Sharing 1,1,1  
-    draw3DTriangle([1, 1, 1, 1, 1, 0, 1, 0, 0]);
-    draw3DTriangle([1, 1, 1, 1, 0, 1, 1, 0, 0]);
-
-    draw3DTriangle([1, 1, 1, 1, 1, 0, 0, 1, 0]);
-    draw3DTriangle([1, 1, 1, 0, 1, 1, 0, 1, 0]);
-
-    draw3DTriangle([1, 1, 1, 1, 0, 1, 0, 0, 1]);
-    draw3DTriangle([1, 1, 1, 0, 1, 1, 0, 0, 1]);
-  }
 }
 
-export { Cube };
+export { Sphere };

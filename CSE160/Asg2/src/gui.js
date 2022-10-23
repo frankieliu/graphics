@@ -1,10 +1,8 @@
-import { globals, POINT, TRIANGLE, CIRCLE } from './global.js';
+import { globals } from './global.js';
 
-import { Point } from './Point.js';
-import { Triangle } from './Triangle.js';
-import { Circle } from "./Circle.js";
-
-import { RenderAllShapes } from "./render.js";
+import { Matrix4 } from '../lib/cuon-matrix-cse160.js';
+import { renderScene } from "./render.js";
+import { tick } from "./animate.js";
 
 function convertCoordinatesEventToGL(ev) {
   var x = ev.clientX; // x coordinate of a mouse pointer
@@ -17,127 +15,129 @@ function convertCoordinatesEventToGL(ev) {
   return [x, y];
 }
 
-function click(ev) {
-  var [x, y] = convertCoordinatesEventToGL(ev);
-
-  // Store the coordinates to g_points array
-  var aShape;
-  switch (globals.select.shape) {
-    case POINT:
-      aShape = new Point();
-      break;
-    case TRIANGLE:
-      aShape = new Triangle();
-      break;
-    case CIRCLE:
-      aShape = new Circle();
-      aShape.numberOfSegments = globals.select.numberOfSegments;
-      break;
-    default:
-      return;
+function setAngleSlider(elementId, labelString, boneIndex) {
+  document.getElementById(elementId).oninput = function () {
+    var angle = this.value;
+    // console.log(this.labels[0].innerHtml)
+    this.labels[0].innerHTML = labelString + ": " + angle + " deg";
+    var blockyAnimal = globals.program[0].shapes[0];
+    blockyAnimal.setJointAngle(boneIndex, angle);
+    renderScene();
   }
-
-  aShape.xy = [x, y];
-  aShape.rgb = globals.select.color.map(n => n/255);
-  aShape.size = globals.select.size;
-
-  globals.program[0].shapes.push(aShape);
-
-  RenderAllShapes();
 }
 
-function readColor() {
-  var ids = ["red", "green", "blue"];
-  for (var i = 0; i < 3; i++) {
-    globals.select.color[i] = parseInt(document.getElementById(ids[i]).value);
+function setAngleSliders() {
+  setAngleSlider("left-hip-rotation", "Left Hip rotation", 0);
+  setAngleSlider("left-hip-angle", "Left Hip angle", 1);
+  setAngleSlider("left-knee-angle", "Left Knee angle", 2);
+  setAngleSlider("left-ankle-angle", "Left Ankle angle", 3);
+  setAngleSlider("right-hip-rotation", "Right Hip rotation", 4);
+  setAngleSlider("right-hip-angle", "Right Hip angle", 5);
+  setAngleSlider("right-knee-angle", "Rigth Knee angle", 6);
+  setAngleSlider("right-ankle-angle", "Right Ankle angle", 7);
+}
+
+function setupAnimate() {
+  var elementId = "animate";
+  document.getElementById(elementId).onclick = function () {
+    globals.select.animate = !globals.select.animate;
+    // console.log(this.labels[0].innerHtml)
+    this.labels[0].innerHTML = globals.select.animate ? "On" : "Off";
+    // var blockyAnimal = globals.program[0].shapes[0];
+    // blockyAnimal.setJointAngle(boneIndex, angle);
+    // renderScene();
+    if (globals.select.animate) {
+      globals.animate.startTime = performance.now();
+      tick();
+    }
   }
-  var color = "rgb(" + globals.select.color.map(n => String(n)).join(",") + ")";
-  document.getElementById("rgb").style.backgroundColor = color;
+}
+
+var camera = {
+  buttonDown: false,
+  x: null,
+  y: null,
+  client: null,
+};
+
+function setCameraControl() {
+  if (!camera.client) {
+    camera.client = document.getElementById('webgl');
+  }
+  camera.client.onmousemove = function (e) {
+    if (e.buttons & 1 || (e.buttons === undefined && e.which == 1)) {
+      if (!camera.buttonDown) {
+        camera.x = e.clientX;
+        camera.y = e.clientY;
+      } else {
+        var dx = (e.clientX - camera.x) * 1.0 / camera.client.width;
+        var dy = (e.clientY - camera.y) * 1.0 / camera.client.height;
+        // Register changing global rotation
+        globals.select.globalRotation += dx * 36;
+        setGlobalRotateMatrix();
+        renderScene();
+      }
+      camera.buttonDown = true;
+    } else {
+      camera.buttonDown = false;
+    }
+  }
+}
+
+var poke = {
+  count: 0,  // state count
+  max: 2,    // max number of states
+  client: null,
+};
+
+function setPokeAnimation() {
+  if (!poke.client) {
+    poke.client = document.getElementById('webgl');
+  }
+  poke.client.onclick = function (e) {
+    if (e.shiftKey) {
+      poke.count = (poke.count + 1) % poke.max;
+      globals.animate.index = poke.count;
+    }
+  }
+}
+function setGlobalRotateMatrix() {
+  const rotMatrix = new Matrix4().rotate(
+    globals.select.globalRotation, 0, 1, 0)
+    .scale(0.7*globals.select.size/10.,
+      0.7*globals.select.size/10.,
+      0.7*globals.select.size/10.);
+
+  // Load rotation Matrix to u_GlobalRotateMatrix
+  globals.gl.uniformMatrix4fv(globals.program[0].u_GlobalRotateMatrix,
+    false, rotMatrix.elements);
 }
 
 function setHtmlUI() {
 
-  // Register function (event handler) to be called on a mouse press
-  globals.canvas.onmousedown = click;
-  globals.canvas.onmousemove = function (ev) {
-     if (ev.buttons == 1) {
-      click(ev);
-     }
-  };
-  
-  // Register events for color
-  document.getElementById("red").oninput = function () { readColor(); }
-  document.getElementById("green").oninput = function () { readColor(); }
-  document.getElementById("blue").oninput = function () { readColor(); }
-
-  document.getElementById("red").value = globals.select.color[0];
-  document.getElementById("green").value = globals.select.color[1];
-  document.getElementById("blue").value = globals.select.color[2];
-
-  readColor();
-
   // Register event for size changes 
-  document.getElementById("size").onmouseup = function () {
+  document.getElementById("size").oninput = function () {
     globals.select.size = parseInt(this.value);
+    setGlobalRotateMatrix();
+    renderScene();
   };
-
-  // Register event for clearing canvas 
-  document.getElementById("clear").onmouseup = function () {
-    globals.program[0].shapes = [];
-    RenderAllShapes();
-  }
-
-  // Register brush shape
-  document.getElementById("point").onmouseup = function () { globals.select.shape = POINT; }
-  document.getElementById("triangle").onmouseup = function () { globals.select.shape = TRIANGLE; }
-  document.getElementById("circle").onmouseup = function () { globals.select.shape = CIRCLE; }
-
-  // Register number of segments
-  document.getElementById("numberOfSegments").onmouseup = function () {
-    globals.select.numberOfSegments = parseInt(this.value);
-  }
 
   // Register changing top layer opacity
   document.getElementById("opacity").oninput = function () {
-    document.getElementById("webgl").style.opacity = parseInt(this.value)/100;
+    document.getElementById("webgl").style.opacity = parseInt(this.value) / 100;
   }
 
   // Register changing global rotation
   document.getElementById("globalRotation").oninput = function () {
     globals.select.globalRotation = parseInt(this.value);
-    RenderAllShapes();
+    setGlobalRotateMatrix();
+    renderScene();
   }
-
-  // Register continuous drawing or single clicks
-  var cont = document.getElementById("continuous");
-  cont.onclick = function () {
-    if (cont.checked) {
-      globals.canvas.onmousemove = click;
-    } else {
-      globals.canvas.onmousemove = function (ev) {
-        if (ev.buttons == 1) {
-          click(ev);
-        }
-      }
-    }
-  };
-
-  /*
-  var imageSource = document.getElementById("imageSource");
-  imageSource.onerror = function() {
-    console.log(imageSource.src + ": image not found");
-    imageSource.src = "img/blue-morpho-butterfly-1-400x400.jpg.webp";
-  }
-  */
-
-  document.getElementById("imageInput").onchange = function () {
-    document.getElementById("imageSource").src = this.value;
-  } 
-
-  document.getElementById("butterfly").onclick = function () {
-    globals.program[0].shapes = globals.program[0].butterfly.slice()
-    RenderAllShapes();
-  }
+  setGlobalRotateMatrix();
+  setAngleSliders();
+  setupAnimate();
+  setCameraControl();
+  setPokeAnimation();
 }
 
 export { setHtmlUI };
