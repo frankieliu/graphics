@@ -2,6 +2,15 @@
 
 [course](https://canvas.ucsc.edu/courses/56622)
 
+## Robotic animals
+https://courses.soe.ucsc.edu/courses/cmps160/Fall13/01/pages/lab2
+
+# Books
+
+https://github.com/esangel/WebGL
+INTERACTIVE COMPUTER GRAPHICS: A TOP-DOWN APPROACH WITH SHADER-BASED OPENGL®
+EDWARD ANGEL University of New Mexico
+
 # Videos
 
 [playlist](https://www.youtube.com/watch?v=dZOy1n0d8r0&list=PLbyTU_tFIkcMK5FiV6btXxHQAy15p0j7X)
@@ -218,6 +227,9 @@ SketchPunkLabs
 
 # three.js walking
 https://codepen.io/nik-lever/pen/xMGwqq
+https://niklever.com/courses/
+Pretty impressive
+https://codepen.io/nik-lever/pen/KKozYzp
 
 # wireframe overlay with canvas 2d
 https://geoffrichards.co.uk/blog/2022/01/webgl-wireframe/
@@ -231,4 +243,22 @@ https://veeenu.github.io/blog/implementing-skeletal-animation/
 Ctrl-P (Open)
 You can remove things that you don't need anymore
 
-Ctrl-Tab (Only open )
+Ctrl-Tab (Only open files in editor)
+
+# mmd and webgl
+https://github.com/takahirox/mmd-viewer-js
+
+# very good one on animation loop
+https://www.smashingmagazine.com/2017/09/animation-interaction-techniques-webgl/
+
+# Create tutorial using blender maximo
+Adding animation and having things change!
+https://tympanus.net/codrops/2019/10/14/how-to-create-an-interactive-3d-character-with-three-js/
+
+Creating an interactive 3D character
+
+# Attaching a bone to a model
+https://code.tutsplus.com/tutorials/webgl-with-threejs-models-and-animation--net-35993
+
+# WebGL and skinning
+https://webglfundamentals.org/webgl/lessons/webgl-skinning.html
