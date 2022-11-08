@@ -61,3 +61,6 @@ This structure is written in such a way as not to create any unnecessary variabl
 
 As for why it assigns this to global? That's because window is (was?) a completely unprotected variable in global scope (that's why node.js does not give it a name) and any 3rd party code can overwrite it with a different thing or modify it. If you want the original global object of the browser while using unknown 3rd party code you need to use this this trick.
 ```
+
+# Add img dynamically
+[image](https://stackoverflow.com/questions/72217858/the-server-responded-with-a-mime-type-of-image-png-html-javascript)

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Parcel Sandbox</title>
+  <link rel="stylesheet" href="src/styles.css">
+  <meta charset="UTF-8" />
+</head>
+
+<body>
+  <div class="wrapper">
+  <canvas id="webgl" width="400" height="400"></canvas>
+
+  <!-- div id="canvasOver" width="400" height="400">
+    <img id="imageSource" src="img/blue-morpho-butterfly-1-400x400.jpg.webp"
+       width="400" height="400"></img>
+  </div -->
+
+  </div>
+  
+  <div>
+    <input type="range" id="size" min="1" max="10" value="4">
+    <label for="size">Size</label>
+  </div>
+  <div>
+    <input type="range" id="opacity" min="0" max="100" value="100">
+    <label for="opacity">Opacity</label>
+  </div>
+  <div>
+    <input type="range" id="globalRotation" min="0" max="360" value="0">
+    <label for="globalRotation">Global Rotation</label>
+  </div>
+  <div>
+    <input type="button" id="animate" value="Animate">
+    <label for="animate">Off</label>
+  </div>
+  <div>
+    <input type="range" id="left-hip-rotation" min="-90" max="90" value="0">
+    <label for="left-hip-rotation">Left Hip rotation: 0 deg</label>
+  </div>
+  <div>
+    <input type="range" id="left-hip-angle" min="-160" max="20" value="0">
+    <label for="left-hip-angle">Left Hip angle: 0 deg</label>
+  </div>
+  <div>
+    <input type="range" id="left-knee-angle" min="0" max="160" value="0">
+    <label for="left-knee-angle">Left Knee angle: 0 deg</label>
+  </div>
+  <div>
+    <input type="range" id="left-ankle-angle" min="-30" max="90" value="0">
+    <label for="left-ankle-angle">Left Ankle angle: 0 deg</label>
+  </div>
+  <div>
+    <input type="range" id="right-hip-rotation" min="-90" max="90" value="0">
+    <label for="right-hip-rotation">Right Hip rotation: 0 deg</label>
+  </div>
+  <div>
+    <input type="range" id="right-hip-angle" min="-160" max="20" value="0">
+    <label for="right-hip-angle">Right Hip angle: 0 deg</label>
+  </div>
+  <div>
+    <input type="range" id="right-knee-angle" min="0" max="160" value="0">
+    <label for="right-knee-angle">Right Knee angle: 0 deg</label>
+  </div>
+  <div>
+    <input type="range" id="right-ankle-angle" min="-30" max="90" value="0">
+    <label for="right-ankle-angle">Right Ankle angle: 0 deg</label>
+  </div>
+  <!-- scripts --> 
+  <script src="lib/stats.js"></script>
+  <script type="module" src="src/index.js"></script>
+  <div>
+    <p>Features:</p>
+    <ul>
+      <li>FPS is active only during animation</li>
+      <li>Shift + Click: switches animation</li>
+      <li>Size: global scaling</li>
+      <li>Click + Move: changes Global Rotation</li>
+      <li>Opacity: controls the opacity of the drawing layer.
+        Turn to 100 to hide the underlying image.</li>
+      </li>
+    </ul>
+  </div>
+</body>
+
+</html>

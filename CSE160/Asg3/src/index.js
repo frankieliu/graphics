@@ -55,9 +55,6 @@ function main() {
   sun.rgb = [235, 209, 16].map(x => x/255.);
   globals.program[0].shapes.push(sun);
 
-  var cube = new CubeSimple();
-  
-
   globals.animate.animation.push(new Animation(blockyAnimal));
   globals.animate.animation.push(new Animation2(blockyAnimal));
 
