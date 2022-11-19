@@ -1,0 +1,31 @@
+<body>
+    <p> hello </p>
+    <p> a </p>
+    <p> b </p>
+</body>
+<script src="//d3js.org/d3.v3.min.js"></script>
+<script>
+d3.select("body")
+  .selectAll("p")
+  .data([4, 8, 15, 16, 23, 42])
+  .enter().append("p")
+    .text(function(d) { return "I’m number " + d + "!"; });
+
+d3.selectAll("p")
+  .data([4, 8, 15, 16, 23, 42])
+  .style("font-size", function(d) { return d + "px"; });
+
+// Update…
+var p = d3.select("body")
+  .selectAll("p")
+  .data([4, 8, 15, 16, 23, 42])
+    .text(function(d) { return d; });
+
+// Enter…
+p.enter().append("p")
+    .text(function(d) { return d; });
+
+// Exit…
+p.exit().remove();
+
+</script>

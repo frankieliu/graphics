@@ -3,15 +3,11 @@ import { Cube } from './Cube.js';
 import {
     gl, canvas, u_ModelMatrix, u_GlobalRotateMatrix,
     u_ViewMatrix, u_ProjectionMatrix, u_Sampler0, u_Sampler1, g_map,
-    addBlock, deleteBlock, findEmpty
+    addBlock, deleteBlock, findEmpty,
+    u_lightPos, u_cameraPos,
 } from './globals.js';
 import { Camera } from "./Camera.js";
-
-// Terrain imports
-import { m4 } from '../lib/3d-math.js';
-import { twgl } from '../lib/twgl-full.js';
-import { Convert } from "./img2terrain.js";
-import { TerrainShader } from "./terrainShader.js";
+import { Sphere } from './Sphere.js';
 
 function setupWebGL() {
     if (!gl) {
@@ -51,7 +47,6 @@ function initTextures(src, n) {
 }
 
 function sendImageToTEXTURE(image, n) {
-    gl.useProgram(gl.program);
     var texture = gl.createTexture();
     if (!texture) {
         console.log('Failed to crete the texture object');
@@ -94,14 +89,13 @@ function sendImageToTEXTURE(image, n) {
 var g_globalAngle = 0;
 var g_yellowAngle = 0;
 var g_yellowAngle0 = 0;
-var g_magentaAngle = 0;
 var g_yellowAnimation = false;
+var g_magentaAngle = 0;
+var g_magentaAngle0 = 0;
+var g_magentaAnimation = false;
 var g_camera = new Camera();
-
-// Terrain information
-var terrainShader = null;
-var programInfo = null;
-var bufferInfo = null;
+var g_normalOn = false;
+var g_lightPos = [-0.81,0.21,0.24];
 
 // For debugging
 // window.camera = g_camera;
@@ -110,16 +104,26 @@ var bufferInfo = null;
 function addActionsForHtmlUI() {
 
     // Button Events
-    document.getElementById('animationYellowOffButton').onclick = function () {
-        g_yellowAnimation = false;
-        var slider = document.getElementById('yellowSlide');
-        slider.value = g_yellowAngle;
+    document.getElementById('animationMagentaToggle').onclick = function () {
+        g_magentaAnimation = !g_magentaAnimation;
+        if (!g_magentaAnimation) {
+            var slider = document.getElementById('magentaSlide');
+            slider.value = g_magentaAngle;
+        } else {
+            // g_magentaAngle = 45*sin(3*g_seconds + g_magentaAngle0)
+            g_magentaAngle0 = Math.asin(g_magentaAngle / 45.) - 3*g_seconds;
+        }
     }
 
-    document.getElementById('animationYellowOnButton').onclick = function () {
-        g_yellowAngle0 = Math.asin(g_yellowAngle / 45.);
-        g_startTime = performance.now() / 1000.;
-        g_yellowAnimation = true;
+    document.getElementById('animationYellowToggle').onclick = function () {
+        g_yellowAnimation = !g_yellowAnimation;
+        if (!g_yellowAnimation){
+            var slider = document.getElementById("yellowSlide");
+            slider.value = g_yellowAngle;
+        } else {
+            // g_yellowAngle = 45*sin(g_seconds + g_yellowAngle0)
+            g_yellowAngle0 = Math.asin(g_yellowAngle / 45.) - g_seconds;
+        }
     };
 
     // Color Slider Events
@@ -133,7 +137,33 @@ function addActionsForHtmlUI() {
     document.onkeydown = keydown;
     canvas.onmousemove = mousemove;
 
+    // Asg 4: Lighting
+    document.getElementById('normalToggle').onclick = function () {
+        g_normalOn = !g_normalOn;
+        renderAllShapes();
+        console.log("click");
+    };
+
+    const lightListener = function (elementId, index) {
+        document.getElementById(elementId).addEventListener('mousemove', function (ev) {
+            if (ev.buttons == 1) {
+                g_lightPos[index] = this.value / 100;
+                console.log(g_lightPos);
+                renderAllShapes();
+            }
+        })
+    };
+
+    document.getElementById("lightX").value = g_lightPos[0]*100;
+    document.getElementById("lightY").value = g_lightPos[1]*100;
+    document.getElementById("lightZ").value = g_lightPos[2]*100;
+    lightListener("lightX", 0);
+    lightListener("lightY", 1);
+    lightListener("lightZ", 2);
 }
+
+
+
 
 function main() {
 
@@ -155,20 +185,10 @@ function main() {
     // Specify the color for clearing <canvas>
     gl.clearColor(0, 0, 0, 1);
 
-    const result = {}
-    Convert.imgLoad('./src/heightmap-96x64.png', result, run);
-
-    function run() {
-        // const gl = document.querySelector('canvas').getContext('webgl');
-        terrainShader = new TerrainShader(gl, result.arrays);
-        programInfo = terrainShader.programInfo;
-        bufferInfo = terrainShader.bufferInfo;
-
-        // Render
-        // gl.clear(gl.COLOR_BUFFER_BIT);
-        // renderAllShapes();
-        requestAnimationFrame(tick);
-    }
+    // Render
+    // gl.clear(gl.COLOR_BUFFER_BIT);
+    // renderAllShapes();
+    requestAnimationFrame(tick);
 }
 
 var g_startTime = performance.now() / 1000.;
@@ -194,6 +214,10 @@ function updateAnimationAngles() {
     if (g_yellowAnimation) {
         g_yellowAngle = (45 * Math.sin(g_seconds + g_yellowAngle0));
     }
+    if (g_magentaAnimation) {
+        g_magentaAngle = (45 * Math.sin(3*g_seconds + g_magentaAngle0));
+    }
+    g_lightPos[0] = Math.cos(g_seconds);
 }
 
 function keydown(ev) {
@@ -208,6 +232,7 @@ function keydown(ev) {
         KeyW: () => g_camera.moveForward(),
         KeyQ: () => g_camera.panLeft(),
         KeyE: () => g_camera.panRight(),
+        KeyZ: () => g_camera.info(),
         Equal: () => addBlock(g_camera.at),
         Minus: () => deleteBlock(g_camera.at),
         KeyT: () => startGame(),
@@ -229,9 +254,6 @@ function mousemove(ev) {
     g_camera.pan(360 * diff);
 }
 
-// Play a game for find and seek
-// Player is teleported to an empty space in the board
-// And has 60 seconds to find the animal on the maze
 var countdown = null;
 function startGame() {
     var [xi, yi] = findEmpty();
@@ -243,9 +265,10 @@ function startGame() {
 }
 
 function drawMap() {
+    const [xOff, yOff] = [16, 16];
     for (var x = 0; x < 32; x++) {
         for (var y = 0; y < 32; y++) {
-            if (x == 16 && y == 16) {
+            if (x == xOff && y == yOff) {
                 // Don't hit the animal
                 continue;
             }
@@ -253,6 +276,7 @@ function drawMap() {
                 for (var k = 0; k < g_map[x][y]; k++) {
                     var wall = new Cube();
                     wall.color = [1, 1, 1, 1];
+                    // wall.textureNum = g_normalOn ? -3: 1;
                     wall.textureNum = 1;
                     wall.matrix.translate(x - 16.5, -.75 + k, y - 16.5);
                     wall.render();
@@ -262,132 +286,109 @@ function drawMap() {
     }
 }
 
-function drawTerrain(projection, modelView) {
-
-    // twgl.resizeCanvasToDisplaySize(gl.canvas);
-
-    // gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-    // gl.enable(gl.DEPTH_TEST);
-    // gl.enable(gl.CULL_FACE);
-
-    // const fov = Math.PI * 0.25;
-    // const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
-    // const near = 0.1;
-    // const far = 100;
-    // const projection = m4.perspective(fov, aspect, near, far);
-
-    // const eye = [0, 10, 25];
-    // const target = [0, 0, 0];
-    // const up = [0, 1, 0];
-    // const camera = m4.lookAt(eye, target, up);
-    // const view = m4.inverse(camera);
-    // let modelView = m4.yRotate(view, time);
-    // modelView = m4.translate(modelView, imgData.width / -2, 0, imgData.height / -2)
-
-    const modelMatrix = m4.scale(m4.translate(m4.identity(),-48,-3,-32),4,.37,4);
-    
-    gl.useProgram(programInfo.program);
-
-    // calls gl.bindBuffer, gl.enableVertexAttribArray, gl.vertexAttribPointer
-    twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
-
-    // calls gl.activeTexture, gl.bindTexture, gl.uniformXXX
-    twgl.setUniforms(programInfo, {
-      projection,
-      modelView,
-      modelMatrix,
-    });  
-
-    // calls gl.drawArrays or gl.drawElements
-    twgl.drawBufferInfo(gl, bufferInfo);
-}
-
 // Draw every shape that is supposed to be in the canvas
 function renderAllShapes() {
 
-    // Chek the time at the start of this function
+    // Check the time at the start of this function
     var startTime = performance.now();
 
-    // Clear <canvas>
-    // gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-    // Projection matrix
+    // Pass the projection matrix
     var projMat = new Matrix4();
     projMat.setPerspective(g_camera.fov, canvas.width / canvas.clientHeight, 0.1, 1000);
+    gl.uniformMatrix4fv(u_ProjectionMatrix, false, projMat.elements);
 
-    // View matrix
+    // Pass the view matrix
     var viewMat = new Matrix4();
     viewMat.setLookAt(
         g_camera.eye.elements[0], g_camera.eye.elements[1], g_camera.eye.elements[2],
         g_camera.at.elements[0], g_camera.at.elements[1], g_camera.at.elements[2],
         g_camera.up.elements[0], g_camera.up.elements[1], g_camera.up.elements[2]); // (eye, at, up)
+    gl.uniformMatrix4fv(u_ViewMatrix, false, viewMat.elements);
 
-    if (true) { // renders all from one shader
-        gl.useProgram(gl.program);
-        gl.uniformMatrix4fv(u_ProjectionMatrix, false, projMat.elements);
-        gl.uniformMatrix4fv(u_ViewMatrix, false, viewMat.elements);
+    // Pass the matrix to u_ModelMatrix attribute
+    var gloabalRotMat = new Matrix4().rotate(g_globalAngle, 0, 1, 0);
+    gl.uniformMatrix4fv(u_GlobalRotateMatrix, false, gloabalRotMat.elements);
 
-        // Pass the globalRotMat (just rotate the objects)
-        var globalRotMat = new Matrix4().rotate(g_globalAngle, 0, 1, 0);
-        gl.uniformMatrix4fv(u_GlobalRotateMatrix, false, globalRotMat.elements);
+    // Clear <canvas>
+    // gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        // Draw the body cube    
-        var body = new Cube();
-        body.color = [1, 0, 0, 1];
-        body.matrix.translate(-.25, -.75, 0);
-        body.matrix.rotate(-5, 1, 0, 0)
-        body.matrix.scale(.5, .3, .5);
-        body.render();
+    // Draw the body cube    
+    var body = new Cube();
+    body.color = [1, 0, 0, 1];
+    body.textureNum = g_normalOn ? -3 : -2;
+    body.matrix.translate(-.25, -.75, 0);
+    body.matrix.rotate(-5, 1, 0, 0)
+    body.matrix.scale(.5, .3, .5);
+    body.render();
 
-        // Draw a left arm
-        var leftArm = new Cube();
-        leftArm.color = [1, 1, 0, 1];
-        leftArm.matrix.setTranslate(0, -.5, 0);
-        leftArm.matrix.rotate(-5, 1, 0, 0);
-        leftArm.matrix.rotate(-g_yellowAngle, 0, 0, 1);
-        var yellowCoordinatesMat = new Matrix4(leftArm.matrix);
-        leftArm.matrix.scale(.25, .7, .5);
-        leftArm.matrix.translate(-0.5, 0, 0);
-        leftArm.render();
+    // Draw a left arm
+    var leftArm = new Cube();
+    leftArm.color = [1, 1, 0, 1];
+    leftArm.textureNum = g_normalOn ? -3 : -2;
+    leftArm.matrix.setTranslate(0, -.5, 0);
+    leftArm.matrix.rotate(-5, 1, 0, 0);
+    leftArm.matrix.rotate(-g_yellowAngle, 0, 0, 1);
+    var yellowCoordinatesMat = new Matrix4(leftArm.matrix);
+    leftArm.matrix.scale(.25, .7, .5);
+    leftArm.matrix.translate(-0.5, 0, 0);
+    leftArm.render();
 
-        // Magenta box
-        var box = new Cube();
-        box.color = [1, 0, 1, 1];
-        box.textureNum = 0;
-        box.matrix = yellowCoordinatesMat;
-        box.matrix.translate(0, 0.65, 0);
-        box.matrix.rotate(g_magentaAngle, 0, 0, 1);
-        box.matrix.scale(.3, .3, .3);
-        box.matrix.translate(-.5, 0, 1);
-        box.render();
+    // Magenta box
+    var box = new Cube();
+    box.color = [1, 0, 1, 1];
+    box.textureNum = g_normalOn ? -3 : 0;
+    box.matrix = yellowCoordinatesMat;
+    box.matrix.translate(0, 0.65, 0);
+    box.matrix.rotate(g_magentaAngle, 0, 0, 1);
+    box.matrix.scale(.3, .3, .3);
+    box.matrix.translate(-.5, 0, 1);
+    box.render();
 
-        // Ground plane
-        var ground = new Cube();
-        ground.color = [0.5, 0.5, 0.5, 1];
-        ground.textureNum = 0;
-        ground.matrix.translate(0, -3, 0);
-        ground.matrix.scale(33, 0, 33);
-        ground.matrix.translate(-.5, 0, -.5);
-        ground.render();
+    // Sphere
+    var sphere = new Sphere();
+    sphere.color = [1, 0, 1, 1];
+    sphere.textureNum = g_normalOn ? -3 : -1;
+    sphere.matrix = box.matrix;
+    sphere.matrix.translate(0, 0.5, 0);
+    // sphere.matrix.scale(0.3,0.3,0.3);
+    sphere.render();
 
-        // Draw the sky
-        var sky = new Cube();
-        sky.color = [0, 0, 1, 1];
-        sky.matrix.scale(50, 50, 50);
-        sky.matrix.translate(-.5, -.5, -.5);
-        sky.render();
+    // Ground plane
+    var ground = new Cube();
+    ground.color = [0.5, 0.5, 0.5, 1];
+    ground.textureNum = 0;
+    ground.matrix.translate(0, -.75, 0);
+    ground.matrix.scale(33, 0, 33);
+    ground.matrix.translate(-.5, 0, -.5);
+    ground.render();
 
-        // Draws the dungeon
-        drawMap();
-    }
+    // Draw the sky
+    var sky = new Cube();
+    sky.color = [0, 0, 1, 1];
+    sky.textureNum = g_normalOn ? -3 : 0;
+    sky.matrix.scale(-50, -50, -50);
+    sky.matrix.translate(-.5, -.5, -.5);
+    sky.render();
 
-    drawTerrain(projMat.elements,viewMat.elements);
+    drawMap();
+
+    // Asg 4 Add light
+    const light = new Cube();
+    light.color = [2,2,0,1];
+    light.matrix.translate(g_lightPos[0],g_lightPos[1],g_lightPos[2]);
+    light.matrix.scale(-.1,-.1,-.1);
+    light.matrix.translate(-.5,-.5,-.5);
+    light.render();
+
+    // pass Light position to GLSL
+    gl.uniform3f(u_lightPos, g_lightPos[0], g_lightPos[1], g_lightPos[2]);
+
+    // pass Camera position to GLSL
+    gl.uniform3f(u_cameraPos, g_camera.eye.x, g_camera.eye.y, g_camera.eye.z);
 
     // Check the time at the end of the function, and show on web page
     var duration = performance.now() - startTime;
-
-    // In case playing the game
     if (countdown !== null) {
         let timeleft = Math.floor((countdown - performance.now()) / 1000);
         if (timeleft <= 0) {
@@ -402,7 +403,7 @@ function renderAllShapes() {
                 sendTextToHTML(" Time left (s): " + timeleft, 'numdot');
             }
         }
-    } else {  // Not playing the game
+    } else {
         sendTextToHTML(" ms: " + Math.floor(duration) + " fps: " + Math.floor(1000 / duration), 'numdot');
     }
 }

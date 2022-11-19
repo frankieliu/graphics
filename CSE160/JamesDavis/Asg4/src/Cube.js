@@ -1,7 +1,9 @@
 import { Matrix4 } from '../lib/cuon-matrix.js';
 import { gl, u_FragColor, u_ModelMatrix, u_whichTexture,
-    cubeVertices, cubeVerticesUV } from './globals.js';
-import { drawTriangle3D, drawTriangle3DUV } from './Triangle.js';
+    cubeVertices, cubeVerticesUV,
+    cubeVerticesUVNormal } from './globals.js';
+import { drawTriangle3D, drawTriangle3DUV,
+    drawTriangle3DUVNormal, } from './Triangle.js';
 
 class Cube {
     constructor() {
@@ -69,7 +71,7 @@ class Cube {
     }
     
     renderUV() {
-        this.setColor()
+        this.setColor();
         
         // Pass the texture number
         gl.uniform1i(u_whichTexture, this.textureNum);
@@ -80,8 +82,21 @@ class Cube {
         drawTriangle3DUV(cubeVerticesUV);
     }
 
+
+    renderUVNormal() {
+        this.setColor();
+        
+        // Pass the texture number
+        gl.uniform1i(u_whichTexture, this.textureNum);
+
+        // Pass the matrix to u_ModelMatrix attribute
+        gl.uniformMatrix4fv(u_ModelMatrix, false, this.matrix.elements);
+
+        drawTriangle3DUVNormal(cubeVerticesUVNormal);
+    }
+
     render() {
-        this.renderUV();
+        this.renderUVNormal();
     }
 
 }

@@ -5,6 +5,9 @@
 ## Robotic animals
 https://courses.soe.ucsc.edu/courses/cmps160/Fall13/01/pages/lab2
 
+## Sample
+https://people-new.ucsc.edu/~qguo14/CSE160/ASG4/World.js
+
 # Books
 
 https://github.com/esangel/WebGL
