@@ -17,6 +17,10 @@ var u_whichTexture;
 var a_Normal;
 var u_lightPos;
 var u_cameraPos;
+var u_lightOn;
+var u_NormalMatrix; // Book p311
+var u_Sampler2;
+var u_Sampler3;
 
 var VSHADER_SOURCE = `
 precision mediump float;
@@ -32,11 +36,12 @@ uniform mat4 u_ProjectionMatrix;
 attribute vec3 a_Normal;
 varying vec3 v_Normal;
 varying vec4 v_VertPos;
+uniform mat4 u_NormalMatrix;
 
 void main() {
     gl_Position = u_ProjectionMatrix * u_ViewMatrix * u_GlobalRotateMatrix * u_ModelMatrix * a_Position;
     v_UV = a_UV;
-    v_Normal = a_Normal;
+    v_Normal = normalize(vec3(u_NormalMatrix * vec4(a_Normal,1)));
     v_VertPos = u_ModelMatrix * a_Position;
 } `
 
@@ -45,8 +50,12 @@ var FSHADER_SOURCE = `
 precision mediump float;
 uniform vec4 u_FragColor;
 varying vec2 v_UV;
+
 uniform sampler2D u_Sampler0;
 uniform sampler2D u_Sampler1;
+uniform sampler2D u_Sampler2;
+uniform sampler2D u_Sampler3;
+
 // uniform float u_TexColorWeight;
 // TexColorWeight becomes inconvenient when you have multiple textures
 // -- simpler to use whichTexture
@@ -56,9 +65,12 @@ varying vec3 v_Normal;
 uniform vec3 u_lightPos;
 varying vec4 v_VertPos;
 uniform vec3 u_cameraPos;
+uniform bool u_lightOn;
 
 void main() {
-    if (u_whichTexture == -3) {          // Use normal
+    if ((u_whichTexture < -3) || (u_whichTexture > 3)) { // Error: use redish color
+        gl_FragColor = vec4(1,.2,.2,1);
+    } else if (u_whichTexture == -3) {   // Use normal
         gl_FragColor = vec4((v_Normal+1.0)/2.0, 1.0);
     } else if (u_whichTexture == -2) {   // Use color
         gl_FragColor = u_FragColor;      
@@ -69,10 +81,15 @@ void main() {
         gl_FragColor = texture2D(u_Sampler0, v_UV);
     } else if (u_whichTexture == 1) {    // Use texture1
         gl_FragColor = texture2D(u_Sampler1, v_UV);
-    } else {                             // Error: use redish color
+    } else if (u_whichTexture == 2) {
+        gl_FragColor = texture2D(u_Sampler2, v_UV);
+    } else if (u_whichTexture == 3) {
+        gl_FragColor = texture2D(u_Sampler3, v_UV);
+    } else {
         gl_FragColor = vec4(1,.2,.2,1);
     }
-    
+   
+    // Points from the light to the position
     vec3 lightVector = u_lightPos - vec3(v_VertPos);
     float r = length(lightVector);
 
@@ -90,20 +107,37 @@ void main() {
     // N dot L
     vec3 L = normalize(lightVector);
     vec3 N = normalize(v_Normal);
-    float nDotL = max(dot(N,L),0.0);
+    float nDotL = max(dot(N,L),0.0); // lambertian
 
     // Reflection
-    vec3 R = reflect(L,N);
+    vec3 R = reflect(-L,N);
 
     // eye
     vec3 E = normalize(u_cameraPos - vec3(v_VertPos));
 
     // specular
-    float specular = pow(max(dot(E,R), 0.0), 10.0);
+    float specAngle = max(dot(E,R), 0.0);
+    float shininess = 64.0;
+    float specular = pow(specAngle, shininess);
+    vec3 specularColor = vec3(1.0,1.0,1.0);
 
-    vec3 diffuse = vec3(gl_FragColor) * nDotL * 0.7;
-    vec3 ambient = vec3(gl_FragColor) * 0.3;
-    gl_FragColor = vec4(diffuse + ambient + specular, 1.0);
+    float Kd = 0.7; // Diffuse reflection coefficient
+    float Ka = 0.2; // Ambient reflection coefficient
+    float Ks = 0.8; // Specular reflection coefficient
+
+    vec3 diffuse = vec3(1.0,1.0,0.9) * vec3(gl_FragColor) * nDotL;
+    vec3 ambient = vec3(gl_FragColor);
+
+    if (u_lightOn) {
+        if ((u_whichTexture >= 0) || (u_whichTexture <= 3)) { // only apply to textures
+            gl_FragColor = vec4(
+                Kd * diffuse +
+                Ka * ambient +
+                Ks * specular * specularColor, 1.0);
+        } else {
+            gl_FragColor = vec4(Kd * diffuse + Ka * ambient, 1.0);
+        }
+    }
 }`
 
 var g_map = generateMap();
@@ -376,7 +410,7 @@ function setUpStorage() {
         return;
     }
 
-    // Get the storage location for u_Sampler0
+    // Get the storage location for u_Sampler1
     u_Sampler1 = gl.getUniformLocation(gl.program, 'u_Sampler1');
     if (!u_Sampler1) {
         console.log('Failed to get the storage location of u_Sampler1');
@@ -407,6 +441,32 @@ function setUpStorage() {
         console.log("Failed to get storage location of u_cameraPos");
         return;
     }
+
+    u_lightOn = gl.getUniformLocation(gl.program, 'u_lightOn');
+    if (!u_lightOn) {
+        console.log("Failed to get storage location of u_lightOn");
+    }
+
+    // Get the storage location for u_Sampler2
+    u_Sampler2 = gl.getUniformLocation(gl.program, 'u_Sampler2');
+    if (!u_Sampler2) {
+        console.log('Failed to get the storage location of u_Sampler2');
+        return;
+    }
+    
+    // Get the storage location for u_Sampler3
+    u_Sampler3 = gl.getUniformLocation(gl.program, 'u_Sampler3');
+    if (!u_Sampler3) {
+        console.log('Failed to get the storage location of u_Sampler3');
+        return;
+    }
+    
+    // Get the storage location of u_ModelMatrix
+    u_NormalMatrix = gl.getUniformLocation(gl.program, 'u_NormalMatrix');
+    if (!u_ModelMatrix) {
+        console.log('Failed to get the storage location u_NormalMatrix');
+        return;
+    }
 }
 
 setUpStorage();
@@ -417,5 +477,7 @@ export {
     g_map, cubeVertices, cubeVerticesUV, checkCollision, addBlock, deleteBlock,
     findEmpty,
     a_Normal, cubeVerticesUVNormal, sphereVertices,
-    u_lightPos, u_cameraPos,
+    u_lightPos, u_cameraPos, u_lightOn,
+    u_Sampler2, u_Sampler3, 
+    u_NormalMatrix,
 };

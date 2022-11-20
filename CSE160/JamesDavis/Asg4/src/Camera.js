@@ -71,7 +71,7 @@ class Camera {
     }
   
     setfAtEye() {
-        return this.f.set(this.at).sub(this.eye);
+        return this.f.set(this.at).sub(this.eye).normalize();
     }
 
     panLeft() {

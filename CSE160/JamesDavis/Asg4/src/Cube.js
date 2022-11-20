@@ -1,7 +1,9 @@
 import { Matrix4 } from '../lib/cuon-matrix.js';
 import { gl, u_FragColor, u_ModelMatrix, u_whichTexture,
     cubeVertices, cubeVerticesUV,
-    cubeVerticesUVNormal } from './globals.js';
+    cubeVerticesUVNormal,
+    u_NormalMatrix,
+ } from './globals.js';
 import { drawTriangle3D, drawTriangle3DUV,
     drawTriangle3DUVNormal, } from './Triangle.js';
 
@@ -10,6 +12,7 @@ class Cube {
         this.type = 'cube';
         this.color = [1,1,1,1];
         this.matrix = new Matrix4();
+        this.normalMatrix = new Matrix4();
         this.textureNum = -2; // Solid color
     }
     
@@ -91,6 +94,8 @@ class Cube {
 
         // Pass the matrix to u_ModelMatrix attribute
         gl.uniformMatrix4fv(u_ModelMatrix, false, this.matrix.elements);
+
+        gl.uniformMatrix4fv(u_NormalMatrix, false, this.normalMatrix.elements);
 
         drawTriangle3DUVNormal(cubeVerticesUVNormal);
     }

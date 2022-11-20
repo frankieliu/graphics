@@ -1,6 +1,7 @@
 import { Matrix4 } from '../lib/cuon-matrix.js';
 import { gl, u_FragColor, u_ModelMatrix, u_whichTexture,
-    sphereVertices } from './globals.js';
+    sphereVertices, u_NormalMatrix,
+ } from './globals.js';
 import { drawTriangle3DUVNormal, } from './Triangle.js';
 
 class Sphere {
@@ -8,6 +9,7 @@ class Sphere {
         this.type = 'sphere';
         this.color = [1,1,1,1];
         this.matrix = new Matrix4();
+        this.normalMatrix = new Matrix4();
         this.textureNum = -2; // Solid color
     }
 
@@ -25,6 +27,9 @@ class Sphere {
         // Pass the matrix to u_ModelMatrix attribute
         gl.uniformMatrix4fv(u_ModelMatrix, false, this.matrix.elements);
 
+        // Pass the matrix to u_NormalMatrix attribute
+        gl.uniformMatrix4fv(u_NormalMatrix, false, this.normalMatrix.elements);
+    
         drawTriangle3DUVNormal(sphereVertices);
     }
 

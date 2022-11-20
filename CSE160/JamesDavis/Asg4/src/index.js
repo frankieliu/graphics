@@ -4,7 +4,7 @@ import {
     gl, canvas, u_ModelMatrix, u_GlobalRotateMatrix,
     u_ViewMatrix, u_ProjectionMatrix, u_Sampler0, u_Sampler1, g_map,
     addBlock, deleteBlock, findEmpty,
-    u_lightPos, u_cameraPos,
+    u_lightPos, u_cameraPos, u_lightOn, u_Sampler2, u_Sampler3,
 } from './globals.js';
 import { Camera } from "./Camera.js";
 import { Sphere } from './Sphere.js';
@@ -54,13 +54,12 @@ function sendImageToTEXTURE(image, n) {
     }
 
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1); // Flip the image's y axis
-    if (n == 0) {
-        // Enable texture unit0
-        gl.activeTexture(gl.TEXTURE0);
-    } else {
-        // Enable texture unit1
-        gl.activeTexture(gl.TEXTURE1);
-    }
+    const activate = {
+        0: () => gl.activeTexture(gl.TEXTURE0),
+        1: () => gl.activeTexture(gl.TEXTURE1),
+        2: () => gl.activeTexture(gl.TEXTURE2),
+        3: () => gl.activeTexture(gl.TEXTURE3),
+    }[n]?.();
 
     // Bind the texture object to the target
     gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -70,13 +69,12 @@ function sendImageToTEXTURE(image, n) {
     // Set the texture image
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
 
-    if (n == 1) {
-        // Set the texture unit 0 to the sampler
-        gl.uniform1i(u_Sampler0, 0);
-    } else {
-        // Set the texture unit 1 to the sampler
-        gl.uniform1i(u_Sampler1, 1);
-    }
+    const sampler = {
+        0: () => gl.uniform1i(u_Sampler0,0),
+        1: () => gl.uniform1i(u_Sampler1,1),
+        2: () => gl.uniform1i(u_Sampler2,2),
+        3: () => gl.uniform1i(u_Sampler3,3),
+    }[n]?.();
 
     //gl.clear(gl.COLOR_BUFFER_BIT); // Clear <canvas>
     //gl.drawArrays(gl.TRIANGLE_STRIP, 0, n); // Draw the rectangle
@@ -95,7 +93,8 @@ var g_magentaAngle0 = 0;
 var g_magentaAnimation = false;
 var g_camera = new Camera();
 var g_normalOn = false;
-var g_lightPos = [-0.81,0.21,0.24];
+var g_lightPos = [-0.81, 0.21, 0.24];
+var g_lightOn = true;
 
 // For debugging
 // window.camera = g_camera;
@@ -111,13 +110,13 @@ function addActionsForHtmlUI() {
             slider.value = g_magentaAngle;
         } else {
             // g_magentaAngle = 45*sin(3*g_seconds + g_magentaAngle0)
-            g_magentaAngle0 = Math.asin(g_magentaAngle / 45.) - 3*g_seconds;
+            g_magentaAngle0 = Math.asin(g_magentaAngle / 45.) - 3 * g_seconds;
         }
     }
 
     document.getElementById('animationYellowToggle').onclick = function () {
         g_yellowAnimation = !g_yellowAnimation;
-        if (!g_yellowAnimation){
+        if (!g_yellowAnimation) {
             var slider = document.getElementById("yellowSlide");
             slider.value = g_yellowAngle;
         } else {
@@ -136,12 +135,13 @@ function addActionsForHtmlUI() {
 
     document.onkeydown = keydown;
     canvas.onmousemove = mousemove;
+    canvas.onmousedown = mousedown;
+    canvas.onmouseup = mouseup;
 
     // Asg 4: Lighting
     document.getElementById('normalToggle').onclick = function () {
         g_normalOn = !g_normalOn;
         renderAllShapes();
-        console.log("click");
     };
 
     const lightListener = function (elementId, index) {
@@ -154,16 +154,18 @@ function addActionsForHtmlUI() {
         })
     };
 
-    document.getElementById("lightX").value = g_lightPos[0]*100;
-    document.getElementById("lightY").value = g_lightPos[1]*100;
-    document.getElementById("lightZ").value = g_lightPos[2]*100;
+    document.getElementById("lightX").value = g_lightPos[0] * 100;
+    document.getElementById("lightY").value = g_lightPos[1] * 100;
+    document.getElementById("lightZ").value = g_lightPos[2] * 100;
     lightListener("lightX", 0);
     lightListener("lightY", 1);
     lightListener("lightZ", 2);
+    
+    document.getElementById('lightOnToggle').onclick = function () {
+        g_lightOn = !g_lightOn;
+        renderAllShapes();
+    };
 }
-
-
-
 
 function main() {
 
@@ -181,6 +183,8 @@ function main() {
     // canvas.onmousemove = function(ev) { if(ev.buttons == 1) { click(ev); }};
     initTextures('src/sky.jpg', 0);
     initTextures('src/wall.png', 1);
+    initTextures('src/dots.png', 2);
+    initTextures('src/uv_map_512x512.png', 3);
 
     // Specify the color for clearing <canvas>
     gl.clearColor(0, 0, 0, 1);
@@ -215,9 +219,9 @@ function updateAnimationAngles() {
         g_yellowAngle = (45 * Math.sin(g_seconds + g_yellowAngle0));
     }
     if (g_magentaAnimation) {
-        g_magentaAngle = (45 * Math.sin(3*g_seconds + g_magentaAngle0));
+        g_magentaAngle = (45 * Math.sin(3 * g_seconds + g_magentaAngle0));
     }
-    g_lightPos[0] = Math.cos(g_seconds);
+    g_lightPos[0] = 2*Math.cos(g_seconds);
 }
 
 function keydown(ev) {
@@ -243,15 +247,20 @@ function keydown(ev) {
 
 var prevXPos = null;
 function mousemove(ev) {
-    if (!prevXPos) {
+    if (isMouseDown) {
+        var diff = (ev.clientX - prevXPos) / ev.target.clientWidth;
+        g_camera.pan(90 * diff);
+    } 
+}
+var isMouseDown = false;
+function mousedown(ev) {
+    if (!isMouseDown) {
         prevXPos = ev.clientX;
+        isMouseDown = true;
     }
-    var diff = (ev.clientX - prevXPos) / ev.target.clientWidth;
-    prevXPos = ev.clientX;
-    if (prevXPos > ev.target.clientWidth || prevXPos < 0) {
-        prevXPos = null
-    }
-    g_camera.pan(360 * diff);
+}
+function mouseup(ev) {
+    isMouseDown = false;
 }
 
 var countdown = null;
@@ -320,6 +329,7 @@ function renderAllShapes() {
     body.matrix.translate(-.25, -.75, 0);
     body.matrix.rotate(-5, 1, 0, 0)
     body.matrix.scale(.5, .3, .5);
+    body.normalMatrix.setInverseOf(body.matrix).transpose();
     body.render();
 
     // Draw a left arm
@@ -332,6 +342,7 @@ function renderAllShapes() {
     var yellowCoordinatesMat = new Matrix4(leftArm.matrix);
     leftArm.matrix.scale(.25, .7, .5);
     leftArm.matrix.translate(-0.5, 0, 0);
+    leftArm.normalMatrix.setInverseOf(leftArm.matrix).transpose();
     leftArm.render();
 
     // Magenta box
@@ -343,15 +354,17 @@ function renderAllShapes() {
     box.matrix.rotate(g_magentaAngle, 0, 0, 1);
     box.matrix.scale(.3, .3, .3);
     box.matrix.translate(-.5, 0, 1);
+    box.normalMatrix.setInverseOf(box.matrix).transpose();
     box.render();
 
     // Sphere
     var sphere = new Sphere();
     sphere.color = [1, 0, 1, 1];
-    sphere.textureNum = g_normalOn ? -3 : -1;
+    sphere.textureNum = g_normalOn ? -3 : 3;
     sphere.matrix = box.matrix;
     sphere.matrix.translate(0, 0.5, 0);
     // sphere.matrix.scale(0.3,0.3,0.3);
+    sphere.normalMatrix.setInverseOf(sphere.matrix).transpose();
     sphere.render();
 
     // Ground plane
@@ -375,10 +388,10 @@ function renderAllShapes() {
 
     // Asg 4 Add light
     const light = new Cube();
-    light.color = [2,2,0,1];
-    light.matrix.translate(g_lightPos[0],g_lightPos[1],g_lightPos[2]);
-    light.matrix.scale(-.1,-.1,-.1);
-    light.matrix.translate(-.5,-.5,-.5);
+    light.color = [2, 2, 0, 1];
+    light.matrix.translate(g_lightPos[0], g_lightPos[1], g_lightPos[2]);
+    light.matrix.scale(-.1, -.1, -.1);
+    light.matrix.translate(-.5, -.5, -.5);
     light.render();
 
     // pass Light position to GLSL
@@ -386,6 +399,9 @@ function renderAllShapes() {
 
     // pass Camera position to GLSL
     gl.uniform3f(u_cameraPos, g_camera.eye.x, g_camera.eye.y, g_camera.eye.z);
+
+    // turn specular on
+    gl.uniform1i(u_lightOn, g_lightOn);
 
     // Check the time at the end of the function, and show on web page
     var duration = performance.now() - startTime;
