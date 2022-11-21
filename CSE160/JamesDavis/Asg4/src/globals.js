@@ -12,15 +12,17 @@ var u_ProjectionMatrix;
 var u_ViewMatrix;
 var u_Sampler0;
 var u_Sampler1;
-var u_whichTexture;
+var u_WhichTexture;
 
 var a_Normal;
-var u_lightPos;
-var u_cameraPos;
-var u_lightOn;
+var u_LightPos;
+var u_CameraPos;
+var u_LightOn;
 var u_NormalMatrix; // Book p311
 var u_Sampler2;
 var u_Sampler3;
+var u_LightColor;
+var u_LightProperties;
 
 var VSHADER_SOURCE = `
 precision mediump float;
@@ -58,39 +60,109 @@ uniform sampler2D u_Sampler3;
 
 // uniform float u_TexColorWeight;
 // TexColorWeight becomes inconvenient when you have multiple textures
-// -- simpler to use whichTexture
-uniform int u_whichTexture;
+// -- simpler to use WhichTexture
+uniform int u_WhichTexture;
 
 varying vec3 v_Normal;
-uniform vec3 u_lightPos;
+uniform vec3 u_LightPos;
 varying vec4 v_VertPos;
-uniform vec3 u_cameraPos;
-uniform bool u_lightOn;
+uniform vec3 u_CameraPos;
+uniform bool u_LightOn;
+uniform vec4 u_LightColor;
+
+struct LightProperties {
+    bool enabled;
+    vec4 position;
+    vec3 color;
+    vec3 spotDirection;  // Note: only a point light can be a spotlight
+    float spotCosineCutoff; // if <= 0, this is not a spotlight, if >= 1, the light cone shrinks to nothing
+    float spotExponent;
+};
+
+struct MaterialProperties {
+    vec3 diffuseColor;
+    vec3 specularColor;
+    float specularExponent;
+};
+
+uniform LightProperties u_LightProperties[4];
+
+vec3 lightingEquation(
+    LightProperties light,
+    MaterialProperties material, 
+    vec3 eyeCoords, // position of the vertex
+    vec3 N, vec3 V) {
+   
+    // N is normal vector
+    // V is direction to viewer.
+    // V points from the vertex to the viewer
+    
+    vec3 L, R; // Light direction and reflected light direction.
+    float spotFactor = 1.0;  // multiplier to account for spotlight
+    
+    // directional light -> parallel rays 
+    if ( light.position.w == 0.0 ) {
+        L = normalize( light.position.xyz );
+    }
+    else { // point lights -- make sure set position.w = 1
+        L = normalize( light.position.xyz/light.position.w - eyeCoords );
+        
+        // Spot light
+        if (light.spotCosineCutoff > 0.0) { // the light is a spotlight
+            vec3 D = -normalize(light.spotDirection);
+            float spotCosine = dot(D,L);
+            if (spotCosine >= light.spotCosineCutoff) { 
+                spotFactor = pow(spotCosine,light.spotExponent);
+            }
+            else { // The point is outside the cone of light from the spotlight.
+                spotFactor = 0.0; // The light will add no color to the point.
+            }
+        }
+
+    }
+
+    if (dot(L,N) <= 0.0) {
+        return vec3(0.0);
+    }
+
+    vec3 reflection = dot(L,N) * light.color * material.diffuseColor;
+    R = -reflect(L,N);
+    if (dot(R,V) > 0.0) {
+        float factor = pow(dot(R,V),material.specularExponent);
+        reflection += factor * material.specularColor * light.color;
+    }
+
+    return spotFactor*reflection;
+
+}
 
 void main() {
-    if ((u_whichTexture < -3) || (u_whichTexture > 3)) { // Error: use redish color
+
+    if ((u_WhichTexture < -3) || (u_WhichTexture > 3)) { // Error: use redish color
         gl_FragColor = vec4(1,.2,.2,1);
-    } else if (u_whichTexture == -3) {   // Use normal
+    } else if (u_WhichTexture == -3) {   // Use normal
         gl_FragColor = vec4((v_Normal+1.0)/2.0, 1.0);
-    } else if (u_whichTexture == -2) {   // Use color
+    } else if (u_WhichTexture == -2) {   // Use color
         gl_FragColor = u_FragColor;      
-    } else if (u_whichTexture == -1) {   // Use UV debug color
+    } else if (u_WhichTexture == -1) {   // Use UV debug color
         gl_FragColor = vec4(v_UV, 1, 1);
-    } else if (u_whichTexture == 0) {    // Use texture0
+    } else if (u_WhichTexture == 0) {    // Use texture0
         // gl_FragColor = u_FragColor * (1.0 - u_TexColorWeight) + u_TexColorWeight * texture2D(u_Sampler0, v_UV);
         gl_FragColor = texture2D(u_Sampler0, v_UV);
-    } else if (u_whichTexture == 1) {    // Use texture1
+    } else if (u_WhichTexture == 1) {    // Use texture1
         gl_FragColor = texture2D(u_Sampler1, v_UV);
-    } else if (u_whichTexture == 2) {
+    } else if (u_WhichTexture == 2) {
         gl_FragColor = texture2D(u_Sampler2, v_UV);
-    } else if (u_whichTexture == 3) {
+    } else if (u_WhichTexture == 3) {
         gl_FragColor = texture2D(u_Sampler3, v_UV);
     } else {
         gl_FragColor = vec4(1,.2,.2,1);
     }
    
     // Points from the light to the position
-    vec3 lightVector = u_lightPos - vec3(v_VertPos);
+    vec3 lightVector = u_LightPos - vec3(v_VertPos);
+    // In the book it should point the other direction
+
     float r = length(lightVector);
 
     // Simple coloring if within certain radius
@@ -113,30 +185,41 @@ void main() {
     vec3 R = reflect(-L,N);
 
     // eye
-    vec3 E = normalize(u_cameraPos - vec3(v_VertPos));
+    vec3 E = normalize(u_CameraPos - vec3(v_VertPos));
 
     // specular
     float specAngle = max(dot(E,R), 0.0);
     float shininess = 64.0;
     float specular = pow(specAngle, shininess);
-    vec3 specularColor = vec3(1.0,1.0,1.0);
+    // Normally should be a material property
+    // Here we just assume that the surface is fairly reflective
+    // for specular reflection
+    vec3 specularColor = vec3(u_LightColor);
 
     float Kd = 0.7; // Diffuse reflection coefficient
     float Ka = 0.2; // Ambient reflection coefficient
     float Ks = 0.8; // Specular reflection coefficient
 
-    vec3 diffuse = vec3(1.0,1.0,0.9) * vec3(gl_FragColor) * nDotL;
+    vec3 diffuse = vec3(1.0,1.0,0.9) * vec3(gl_FragColor) * vec3(u_LightColor) * nDotL;
     vec3 ambient = vec3(gl_FragColor);
 
-    if (u_lightOn) {
-        if ((u_whichTexture >= 0) || (u_whichTexture <= 3)) { // only apply to textures
-            gl_FragColor = vec4(
-                Kd * diffuse +
-                Ka * ambient +
-                Ks * specular * specularColor, 1.0);
-        } else {
-            gl_FragColor = vec4(Kd * diffuse + Ka * ambient, 1.0);
+    if (u_LightOn) {
+        vec3 color = vec3(0.0);
+        for (int i = 0; i < 4; i++) {
+            MaterialProperties material = MaterialProperties(
+                vec3(gl_FragColor), vec3(1.,1.,1.), shininess);
+            if (u_LightProperties[i].enabled) {
+                color += lightingEquation( u_LightProperties[i],
+                    material, vec3(v_VertPos), N, E);
+            }
         }
+        // Add the colors
+        if ((u_WhichTexture >= 0) && (u_WhichTexture <= 3)) { // only apply to textures
+            color += Kd * diffuse + Ka * ambient + Ks * specular; 
+        } else {
+            color += Kd * diffuse + Ka * ambient;
+        }
+        gl_FragColor = vec4(color,1.0);
     }
 }`
 
@@ -173,6 +256,12 @@ function fixMap(aMap) {
     // See Camera's constructor
     removeBlock(aMap, -2, -2);
     removeBlock(aMap, -1, -1);
+    // For Asg 4 remove blocks we have a 10x10 room
+    for(var x=-7;x<=7;x++) {
+        for (var y=-7;y<=7;y++) {
+            removeBlock(aMap, x,y);
+        }
+    }
 }
 
 function removeBlock(aMap, wX, wY) {
@@ -418,9 +507,9 @@ function setUpStorage() {
     }
 
     // Get the storage location for u_whichTexture
-    u_whichTexture = gl.getUniformLocation(gl.program, 'u_whichTexture');
-    if (!u_whichTexture) {
-        console.log('Failed to get the storage location of u_whichTexture');
+    u_WhichTexture = gl.getUniformLocation(gl.program, 'u_WhichTexture');
+    if (!u_WhichTexture) {
+        console.log('Failed to get the storage location of u_WhichTexture');
         return;
     }
 
@@ -430,21 +519,21 @@ function setUpStorage() {
         return;
     }
 
-    u_lightPos = gl.getUniformLocation(gl.program, 'u_lightPos');
-    if (!u_lightPos) {
-        console.log("Failed to get storage location of u_lightPos");
+    u_LightPos = gl.getUniformLocation(gl.program, 'u_LightPos');
+    if (!u_LightPos) {
+        console.log("Failed to get storage location of u_LightPos");
         return;
     }
 
-    u_cameraPos = gl.getUniformLocation(gl.program, 'u_cameraPos');
-    if (!u_cameraPos) {
-        console.log("Failed to get storage location of u_cameraPos");
+    u_CameraPos = gl.getUniformLocation(gl.program, 'u_CameraPos');
+    if (!u_CameraPos) {
+        console.log("Failed to get storage location of u_CameraPos");
         return;
     }
 
-    u_lightOn = gl.getUniformLocation(gl.program, 'u_lightOn');
-    if (!u_lightOn) {
-        console.log("Failed to get storage location of u_lightOn");
+    u_LightOn = gl.getUniformLocation(gl.program, 'u_LightOn');
+    if (!u_LightOn) {
+        console.log("Failed to get storage location of u_LightOn");
     }
 
     // Get the storage location for u_Sampler2
@@ -467,17 +556,54 @@ function setUpStorage() {
         console.log('Failed to get the storage location u_NormalMatrix');
         return;
     }
+
+    // Get the storage location of u_LightColor
+    u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor');
+    if (!u_LightColor) {
+        console.log('Failed to get the storage location u_LightColor');
+    }
+
+    u_LightProperties = new Array(4);
+    for (var i = 0; i < u_LightProperties.length; i++) {
+        u_LightProperties[i] = {
+            enabled: gl.getUniformLocation(
+                gl.program, "u_LightProperties[" + i + "].enabled" ),
+            position: gl.getUniformLocation(
+                gl.program, "u_LightProperties[" + i + "].position" ),
+            color: gl.getUniformLocation(
+                gl.program, "u_LightProperties[" + i + "].color" ),
+            spotDirection: gl.getUniformLocation(
+                gl.program, "u_LightProperties[" + i + "].spotDirection"),
+            spotCosineCutoff: gl.getUniformLocation(
+                gl.program, "u_LightProperties[" + i + "].spotCosineCutoff"),
+            spotExponent: gl.getUniformLocation(
+                gl.program, "u_LightProperties[" + i + "].spotExponent"),
+            // vec3 spotDirection;  // Note: only a point light can be a spotlight
+            // float spotCosineCutoff; // if <= 0, this is not a spotlight, if >= 1, the light cone shrinks to nothing
+            // float spotExponent;
+        };
+    }
+
 }
 
 setUpStorage();
 
+function hexToRgb(hex) {
+    var result0 = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    var result = result0.slice(1,5)
+    return result.map(x => parseInt(x,16))
+}
+
 export {
     gl, canvas, a_Position, u_FragColor, u_ModelMatrix, u_GlobalRotateMatrix,
-    a_UV, u_ViewMatrix, u_ProjectionMatrix, u_Sampler0, u_Sampler1, u_whichTexture,
+    a_UV, u_ViewMatrix, u_ProjectionMatrix, u_Sampler0, u_Sampler1, u_WhichTexture,
     g_map, cubeVertices, cubeVerticesUV, checkCollision, addBlock, deleteBlock,
     findEmpty,
     a_Normal, cubeVerticesUVNormal, sphereVertices,
-    u_lightPos, u_cameraPos, u_lightOn,
+    u_LightPos, u_CameraPos, u_LightOn,
     u_Sampler2, u_Sampler3, 
     u_NormalMatrix,
+    hexToRgb,
+    u_LightColor,
+    u_LightProperties,
 };

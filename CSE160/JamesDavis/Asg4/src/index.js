@@ -4,10 +4,15 @@ import {
     gl, canvas, u_ModelMatrix, u_GlobalRotateMatrix,
     u_ViewMatrix, u_ProjectionMatrix, u_Sampler0, u_Sampler1, g_map,
     addBlock, deleteBlock, findEmpty,
-    u_lightPos, u_cameraPos, u_lightOn, u_Sampler2, u_Sampler3,
+    u_LightPos, u_CameraPos, u_LightOn,
+    u_Sampler2, u_Sampler3,
+    hexToRgb, u_LightColor,
+    u_LightProperties,
 } from './globals.js';
 import { Camera } from "./Camera.js";
 import { Sphere } from './Sphere.js';
+import { jscolor } from '../lib/jscolor.js';
+import { Controls } from "./Controls.js";
 
 function setupWebGL() {
     if (!gl) {
@@ -91,10 +96,17 @@ var g_yellowAnimation = false;
 var g_magentaAngle = 0;
 var g_magentaAngle0 = 0;
 var g_magentaAnimation = false;
+var g_revolutionAngle = 0;
+var g_orbitAngle = 0;
 var g_camera = new Camera();
 var g_normalOn = false;
-var g_lightPos = [-0.81, 0.21, 0.24];
+var g_lightPos = [0, 0.5, 1.5];
 var g_lightOn = true;
+var g_lightAnimation = false;
+var g_lightColor = [1,1,1,1];
+var g_rotateControl = new Controls(gl, g_camera.rotation,
+    () => { g_camera.panRotation(); });
+var g_spotOn = [true,true,true,true];
 
 // For debugging
 // window.camera = g_camera;
@@ -134,11 +146,8 @@ function addActionsForHtmlUI() {
     document.getElementById('angleSlide').addEventListener('mousemove', function () { g_globalAngle = this.value; renderAllShapes(); });
 
     document.onkeydown = keydown;
-    canvas.onmousemove = mousemove;
-    canvas.onmousedown = mousedown;
-    canvas.onmouseup = mouseup;
 
-    // Asg 4: Lighting
+    // Assignment 4: Lighting
     document.getElementById('normalToggle').onclick = function () {
         g_normalOn = !g_normalOn;
         renderAllShapes();
@@ -165,10 +174,29 @@ function addActionsForHtmlUI() {
         g_lightOn = !g_lightOn;
         renderAllShapes();
     };
+    
+    document.getElementById('lightAnimationToggle').onclick = function () {
+        g_lightAnimation = !g_lightAnimation;
+    };
+
+    document.querySelector("#lightColor").onchange = function() {
+        g_lightColor = hexToRgb(this.value).map(x=>x/255.);
+        renderAllShapes();
+    }
+
+    const spotToggle = (k) => {
+        return () => {
+            g_spotOn[k] = !g_spotOn[k];
+            console.log(k, g_spotOn);
+        }
+    }
+    for(var i=0; i<4; i++) {
+        document.getElementById('spotToggle'+i).onclick = spotToggle(i);
+    }
+    
 }
 
 function main() {
-
     // Set up canvas and gl variables
     setupWebGL();
     // Set up GLSL shader programs and connect GLSL variables
@@ -178,13 +206,13 @@ function main() {
     addActionsForHtmlUI();
 
     // Register function (event handler) to be called on a mouse press
-    // canvas.onmousedown = click;
-    // canvas.onmousemove = click;
-    // canvas.onmousemove = function(ev) { if(ev.buttons == 1) { click(ev); }};
     initTextures('src/sky.jpg', 0);
     initTextures('src/wall.png', 1);
     initTextures('src/dots.png', 2);
     initTextures('src/uv_map_512x512.png', 3);
+
+    // Initiate jscolor
+    jscolor.install();
 
     // Specify the color for clearing <canvas>
     gl.clearColor(0, 0, 0, 1);
@@ -207,6 +235,9 @@ function tick() {
     // Update Animation Angles
     updateAnimationAngles();
 
+    // Update controls
+    g_rotateControl.update();
+
     // Draw everything
     renderAllShapes();
 
@@ -220,8 +251,12 @@ function updateAnimationAngles() {
     }
     if (g_magentaAnimation) {
         g_magentaAngle = (45 * Math.sin(3 * g_seconds + g_magentaAngle0));
+        g_revolutionAngle = (g_revolutionAngle + 5) % 360;
+        g_orbitAngle = (g_orbitAngle + 2) % 360;
     }
-    g_lightPos[0] = 2*Math.cos(g_seconds);
+    if (g_lightAnimation) {
+        g_lightPos[0] = 2*Math.cos(1.3*g_seconds);
+    }
 }
 
 function keydown(ev) {
@@ -245,23 +280,6 @@ function keydown(ev) {
     renderAllShapes();
 }
 
-var prevXPos = null;
-function mousemove(ev) {
-    if (isMouseDown) {
-        var diff = (ev.clientX - prevXPos) / ev.target.clientWidth;
-        g_camera.pan(90 * diff);
-    } 
-}
-var isMouseDown = false;
-function mousedown(ev) {
-    if (!isMouseDown) {
-        prevXPos = ev.clientX;
-        isMouseDown = true;
-    }
-}
-function mouseup(ev) {
-    isMouseDown = false;
-}
 
 var countdown = null;
 function startGame() {
@@ -302,79 +320,105 @@ function renderAllShapes() {
     var startTime = performance.now();
 
     // Pass the projection matrix
-    var projMat = new Matrix4();
+    var projMat = g_camera.projectionMatrix;
     projMat.setPerspective(g_camera.fov, canvas.width / canvas.clientHeight, 0.1, 1000);
     gl.uniformMatrix4fv(u_ProjectionMatrix, false, projMat.elements);
 
     // Pass the view matrix
-    var viewMat = new Matrix4();
-    viewMat.setLookAt(
-        g_camera.eye.elements[0], g_camera.eye.elements[1], g_camera.eye.elements[2],
-        g_camera.at.elements[0], g_camera.at.elements[1], g_camera.at.elements[2],
-        g_camera.up.elements[0], g_camera.up.elements[1], g_camera.up.elements[2]); // (eye, at, up)
+    var viewMat = g_camera.viewMatrix;
+    viewMat.setLookAt(...g_camera.eye.elements,
+        ...g_camera.at.elements, ...g_camera.up.elements);
     gl.uniformMatrix4fv(u_ViewMatrix, false, viewMat.elements);
 
     // Pass the matrix to u_ModelMatrix attribute
-    var gloabalRotMat = new Matrix4().rotate(g_globalAngle, 0, 1, 0);
-    gl.uniformMatrix4fv(u_GlobalRotateMatrix, false, gloabalRotMat.elements);
+    var globalRotMat = new Matrix4().rotate(g_globalAngle, 0, 1, 0);
+    gl.uniformMatrix4fv(u_GlobalRotateMatrix, false, globalRotMat.elements);
 
     // Clear <canvas>
     // gl.clear(gl.COLOR_BUFFER_BIT);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     // Draw the body cube    
-    var body = new Cube();
+    const body = new Cube();
     body.color = [1, 0, 0, 1];
     body.textureNum = g_normalOn ? -3 : -2;
-    body.matrix.translate(-.25, -.75, 0);
-    body.matrix.rotate(-5, 1, 0, 0)
-    body.matrix.scale(.5, .3, .5);
+    // body.matrix.translate(-.25, -.75, 0);
+    // body.matrix.rotate(-5, 0, 1, 0)
+    body.matrix.translate(0.5,.15,0.5);
+    body.matrix.scale(.5,.3,.5);
+    body.matrix.translate(-.5,-.5,-.5);
     body.normalMatrix.setInverseOf(body.matrix).transpose();
     body.render();
-
+    
     // Draw a left arm
-    var leftArm = new Cube();
+    const leftArm = new Cube();
     leftArm.color = [1, 1, 0, 1];
     leftArm.textureNum = g_normalOn ? -3 : -2;
-    leftArm.matrix.setTranslate(0, -.5, 0);
-    leftArm.matrix.rotate(-5, 1, 0, 0);
-    leftArm.matrix.rotate(-g_yellowAngle, 0, 0, 1);
-    var yellowCoordinatesMat = new Matrix4(leftArm.matrix);
-    leftArm.matrix.scale(.25, .7, .5);
-    leftArm.matrix.translate(-0.5, 0, 0);
+    leftArm.matrix.translate(.5,.3,.5);              // 5. to top of body
+    leftArm.matrix.rotate(-g_yellowAngle, 0, 0, 1);  // 4. rotate around z-axis
+    const yellowCoordinatesMat = new Matrix4(leftArm.matrix);
+    leftArm.matrix.translate(0,.35,0);               // 3. move to axis of rotation
+    leftArm.matrix.scale(.25,.7,.5);                 // 2. scale
+    leftArm.matrix.translate(-.5,-.5,-.5);           // 1. center
     leftArm.normalMatrix.setInverseOf(leftArm.matrix).transpose();
     leftArm.render();
 
     // Magenta box
-    var box = new Cube();
-    box.color = [1, 0, 1, 1];
-    box.textureNum = g_normalOn ? -3 : 0;
-    box.matrix = yellowCoordinatesMat;
-    box.matrix.translate(0, 0.65, 0);
-    box.matrix.rotate(g_magentaAngle, 0, 0, 1);
-    box.matrix.scale(.3, .3, .3);
-    box.matrix.translate(-.5, 0, 1);
-    box.normalMatrix.setInverseOf(box.matrix).transpose();
-    box.render();
+    const head = new Cube();
+    head.color = [1, 0, 1, 1];
+    head.textureNum = g_normalOn ? -3 : 0;
+    head.matrix = yellowCoordinatesMat;           // 6. pick up rest of xforms
+    head.matrix.translate(0, 0.7, 0);             // 5. move to top of left argm
+    head.matrix.rotate(g_magentaAngle, 0, 0, 1);  // 4. rotate around z-axis
+    const headMat = new Matrix4(head.matrix);
+    head.matrix.translate(0,.15,0);               // 3. move to axis of rotation
+    head.matrix.scale(.3, .3, .3);                // 2. scale
+    head.matrix.translate(-.5,-.5,-.5);           // 1. center
+    head.normalMatrix.setInverseOf(head.matrix).transpose();
+    head.render();
 
     // Sphere
-    var sphere = new Sphere();
+    const sphere = new Sphere();
     sphere.color = [1, 0, 1, 1];
     sphere.textureNum = g_normalOn ? -3 : 3;
-    sphere.matrix = box.matrix;
-    sphere.matrix.translate(0, 0.5, 0);
-    // sphere.matrix.scale(0.3,0.3,0.3);
+    sphere.matrix = headMat;
+    sphere.matrix.translate(0, 0.6, 0);           // move to top of head
+    sphere.matrix.rotate(g_orbitAngle,0,1,0);
+    sphere.matrix.translate(0.3, 0, 0);
+    sphere.matrix.rotate(g_revolutionAngle,0,1,1);
+    sphere.matrix.scale(0.3,0.3,0.3);
     sphere.normalMatrix.setInverseOf(sphere.matrix).transpose();
     sphere.render();
 
-    // Ground plane
+    // cell under 0,0 - 1,1 (xz square)
+    const oneone = new Cube();
+    oneone.color = [0.0, 1, 1, 1];
+    oneone.textureNum = g_normalOn ? -3 : -2;
+    oneone.matrix.translate(.5,-.5,.5);   // reposition at 0,0 1,1
+    oneone.matrix.scale(-1, -1, -1);      // so that the normal colors can be used 
+    oneone.matrix.translate(-.5,-.5,-.5); // Center it
+    // Don't fix the normals! 
+    // oneone.normalMatrix.setInverseOf(oneone.matrix).transpose();
+    // oneone.render();
+
+    // ground for 32x32
     var ground = new Cube();
-    ground.color = [0.5, 0.5, 0.5, 1];
-    ground.textureNum = 0;
-    ground.matrix.translate(0, -.75, 0);
-    ground.matrix.scale(33, 0, 33);
-    ground.matrix.translate(-.5, 0, -.5);
-    ground.render();
+    ground.color = [0.0, 1, 1, 1];
+    ground.textureNum = g_normalOn ? -3 : -2;
+    ground.matrix.translate(0,-.5,0);       // move down so top surface @ 0
+    ground.matrix.scale(-32, -1, -32);      // so that the normal colors can be used 
+    ground.matrix.translate(-.5,-.5,-.5);   // Center it
+    // ground.render();
+
+    // room for asg4
+    // Room is 10x10
+    var room = new Cube();
+    room.color = [0.9, 0.9, 0.9, 1];
+    room.textureNum = g_normalOn ? -3 : -2;
+    room.matrix.translate(0,2,0);         // move down so top surface @ 0
+    room.matrix.scale(-10,-4,-10);          // so that the normal colors can be used 
+    room.matrix.translate(-.5,-.5,-.5);   // Center it
+    room.render();
 
     // Draw the sky
     var sky = new Cube();
@@ -382,9 +426,10 @@ function renderAllShapes() {
     sky.textureNum = g_normalOn ? -3 : 0;
     sky.matrix.scale(-50, -50, -50);
     sky.matrix.translate(-.5, -.5, -.5);
-    sky.render();
+    // sky.render();
 
-    drawMap();
+
+    // drawMap();
 
     // Asg 4 Add light
     const light = new Cube();
@@ -395,14 +440,54 @@ function renderAllShapes() {
     light.render();
 
     // pass Light position to GLSL
-    gl.uniform3f(u_lightPos, g_lightPos[0], g_lightPos[1], g_lightPos[2]);
+    gl.uniform3f(u_LightPos, g_lightPos[0], g_lightPos[1], g_lightPos[2]);
 
     // pass Camera position to GLSL
-    gl.uniform3f(u_cameraPos, g_camera.eye.x, g_camera.eye.y, g_camera.eye.z);
+    gl.uniform3f(u_CameraPos,
+         g_camera.eye.elements[0],
+         g_camera.eye.elements[1],
+         g_camera.eye.elements[2]);
 
     // turn specular on
-    gl.uniform1i(u_lightOn, g_lightOn);
+    gl.uniform1i(u_LightOn, g_lightOn);
 
+    // pass the LightColor
+    gl.uniform4f(u_LightColor, ...g_lightColor);
+
+    // spot lights
+    for (let i = 0; i < 4; i++) {
+        gl.uniform1i( u_LightProperties[i].enabled, g_spotOn[i] ); 
+    }
+
+    // This is a point light
+    gl.uniform4f( u_LightProperties[0].position, 0, 0, 0, 1 );
+    gl.uniform1f( u_LightProperties[0].spotCosineCutoff, 0);
+    gl.uniform3f( u_LightProperties[0].color, 0.5, 0.5, 0.5 );
+    
+    // These are directional lights
+    // all spotlights have the same cutoff and exponent
+    const spotCutoff = 15;
+    const spotExponent = 20;
+    for (let i = 1; i < 4; i++) {
+        const spotDirection = new Vector3(i/8.0+.3, -1, 0);
+        spotDirection.normalize();
+        gl.uniform4f( u_LightProperties[i].position, 1.5,1.5,0,1);
+        gl.uniform3f( u_LightProperties[i].spotDirection, ...spotDirection.elements);
+        gl.uniform1f( u_LightProperties[i].spotCosineCutoff, Math.cos(spotCutoff/180 * Math.PI) );
+        gl.uniform1f( u_LightProperties[i].spotExponent, spotExponent );
+    }
+    gl.uniform3f( u_LightProperties[1].color, 0.6, 0, 0 );
+    gl.uniform3f( u_LightProperties[2].color, 0, 0.6, 0 );
+    gl.uniform3f( u_LightProperties[3].color, 0, 0, 0.6 );
+    
+    // spot light 
+    const spotlight = new Cube();
+    spotlight.color = [0, 1, 1, 1];
+    spotlight.matrix.translate(1.5,1.5,0);
+    spotlight.matrix.scale(-.1, -.1, -.1);
+    spotlight.matrix.translate(-.5, -.5, -.5);
+    spotlight.render();
+    
     // Check the time at the end of the function, and show on web page
     var duration = performance.now() - startTime;
     if (countdown !== null) {

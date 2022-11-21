@@ -1,5 +1,5 @@
 import { Matrix4 } from '../lib/cuon-matrix.js';
-import { gl, u_FragColor, u_ModelMatrix, u_whichTexture,
+import { gl, u_FragColor, u_ModelMatrix, u_WhichTexture,
     cubeVertices, cubeVerticesUV,
     cubeVerticesUVNormal,
     u_NormalMatrix,
@@ -90,7 +90,7 @@ class Cube {
         this.setColor();
         
         // Pass the texture number
-        gl.uniform1i(u_whichTexture, this.textureNum);
+        gl.uniform1i(u_WhichTexture, this.textureNum);
 
         // Pass the matrix to u_ModelMatrix attribute
         gl.uniformMatrix4fv(u_ModelMatrix, false, this.matrix.elements);

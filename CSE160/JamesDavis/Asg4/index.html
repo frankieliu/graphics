@@ -8,22 +8,30 @@
         <canvas id="webgl" width="400" height="400">
             Please use a browser that supports "canvas"
         </canvas>
+        
         <p>
         <p id="numdot"> XXX </p>
         <button type="button" id="normalToggle">Normal</button>
         <button type="button" id="lightOnToggle">Light On</button>
-        <button type="button" id="clearButton">X</button>
-        Use = and - keys to add or remove blocks.
+        <button type="button" id="lightAnimationToggle">Light Anim</button>
+        
         <p>
-        <button type="button" id="pointButton">X</button>
-        <button type="button" id="triButon">X</button>
-        <button type="button" id="circleButton">X</button>
-        Use T key to teleport and start countdown to find animal. 
+        Light Color: <input value="#FFFFFFFF" id="lightColor" data-jscolor="{}">
+        
+        <p> Spotlight toggles
+        <button type="button" id="spotToggle0">1</button>
+        <button type="button" id="spotToggle1">2</button>
+        <button type="button" id="spotToggle2">3</button>
+        <button type="button" id="spotToggle3">4</button>
+
+        <!--p> Ctrl-R to reload map (in case blocks obscure scene, or move around) </p>
+        <p> Use T key to teleport and start countdown to find animal. </p>
+        <p> Use = and - keys to add or remove blocks. </p-->
         <p>
             LX <input type="range" min=-250 max=250 value=33 class="slider" id="lightX">
             LY <input type="range" min=-250 max=250 value=64 class="slider" id="lightY">
             LZ <input type="range" min=-250 max=250 value=-71 class="slider" id="lightZ">
-        <p>X <input type="range" min="0" max="100" value="100" class="slider" id="redSlide">
+        <!-- p>X<input type="range" min="0" max="100" value="100" class="slider" id="redSlide"></p-->
         <p>Magenta <input type="range" min="-45" max="45" value="0" class="slider" id="magentaSlide">
         <button type="button" id="animationMagentaToggle">AnimM</button>
         <p>Yellow <input type="range" min="-45" max="45" value="0" class="slider" id="yellowSlide">
