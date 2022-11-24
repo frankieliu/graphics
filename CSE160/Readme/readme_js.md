@@ -64,3 +64,12 @@ As for why it assigns this to global? That's because window is (was?) a complete
 
 # Add img dynamically
 [image](https://stackoverflow.com/questions/72217858/the-server-responded-with-a-mime-type-of-image-png-html-javascript)
+
+# hex rgb
+[convert](https://stackoverflow.com/questions/5623838/jjrgb-to-hex-and-hex-to-rgb)
+
+# color picker
+[picker](https://jscolor.com/docs/#doc-install-include-jscolor)
+
+# instantiating a 2d array
+[2d array](https://stackoverflow.com/questions/966225/how-can-i-create-a-two-dimensional-array-in-javascript)

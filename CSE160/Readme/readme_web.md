@@ -65,3 +65,10 @@ Add this
 ```html
 <link rel="stylesheet" href="./style.css" type="text/css" /> in your HTML <head>
 ```
+
+# mouse coordinates on canvas
+
+[mouse](https://www.geeksforgeeks.org/how-to-get-the-coordinates-of-a-mouse-click-on-a-canvas-element/)
+
+# ev buttons
+[ev.buttons](https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/buttons)

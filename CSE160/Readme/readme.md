@@ -8,6 +8,15 @@ https://courses.soe.ucsc.edu/courses/cmps160/Fall13/01/pages/lab2
 ## Sample
 https://people-new.ucsc.edu/~qguo14/CSE160/ASG4/World.js
 
+# similar classes
+https://facultyweb.cs.wwu.edu/~wehrwes/courses/csci480_21w/
+
+# hws classes
+[hws](https://math.hws.edu/graphicsbook/c7/s2.html)
+
+# sample code
+[CSE160](https://people-new.ucsc.edu/~qguo14/CSE160/ASG4/World.js)
+
 # Books
 
 https://github.com/esangel/WebGL
