@@ -1,17 +1,19 @@
 // Three.js - Primitives
 // from https://threejs.org/manual/examples/primitives.html
 
-
 import * as THREE from 'three';
 import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { ParametricGeometry } from 'three/addons/geometries/ParametricGeometry.js';
 import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 
-import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-import {OBJLoader} from 'three/addons/loaders/OBJLoader.js';
-import {MTLLoader} from 'three/addons/loaders/MTLLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+import { MTLLoader } from 'three/addons/loaders/MTLLoader.js';
+
+import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 
 function main() {
+
   const canvas = document.querySelector('#c');
   const renderer = new THREE.WebGLRenderer({ canvas });
 
@@ -21,7 +23,7 @@ function main() {
   const far = 1000;
   const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
   camera.position.set(0, 0, 120);
-  
+
   const controls = new OrbitControls(camera, canvas);
   controls.target.set(0, 5, 0);
   controls.update();
@@ -29,14 +31,16 @@ function main() {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xAAAAAA);
 
-  {
+  // DirectionalLight
+  { 
     const color = 0xFFFFFF;
     const intensity = 1;
     const light = new THREE.DirectionalLight(color, intensity);
     light.position.set(-1, 2, 4);
     scene.add(light);
   }
-  
+
+  // DirectionalLight
   {
     const color = 0xFFFFFF;
     const intensity = 1;
@@ -99,7 +103,7 @@ function main() {
     const mesh = new THREE.Mesh(geometry, materials);
     addObject(-2, 2, mesh);
   }
-  
+
   {
     const radius = 7;
     const segments = 24;
@@ -350,9 +354,8 @@ function main() {
     addLineGeometry(1, -2, new THREE.WireframeGeometry(new THREE.BoxGeometry(width, height, depth)));
   }
 
-  // Textured Obj
-  
-  {
+  // HemisphereLight
+  { 
     const skyColor = 0xB1E1FF;  // light blue
     const groundColor = 0xB97A20;  // brownish orange
     const intensity = 1;
@@ -360,15 +363,17 @@ function main() {
     scene.add(light);
   }
 
+  // DirectionalLight
   {
     const color = 0xFFFFFF;
     const intensity = 1;
     const light = new THREE.DirectionalLight(color, intensity);
-    light.position.set(5-2, 10-2, 2);
+    light.position.set(5 - 2, 10 - 2, 2);
     scene.add(light);
     scene.add(light.target);
   }
-
+  
+  // Textured Obj
   {
     const mtlLoader = new MTLLoader();
     mtlLoader.load('https://threejs.org/manual/examples/resources/models/windmill/windmill.mtl', (mtl) => {
@@ -376,14 +381,12 @@ function main() {
       const objLoader = new OBJLoader();
       objLoader.setMaterials(mtl);
       objLoader.load('https://threejs.org/manual/examples/resources/models/windmill/windmill.obj', (root) => {
-        console.log(root);
-        addObject(-2,-2,root);
+        addObject(-2, -2, root);
       });
     });
   }
- 
-  // Skybox
 
+  // Skybox
   {
     const loader = new THREE.CubeTextureLoader();
     const texture = loader.load([
@@ -395,6 +398,194 @@ function main() {
       'https://threejs.org/manual/examples/resources/images/cubemaps/computer-history-museum/neg-z.jpg',
     ]);
     scene.background = texture;
+  }
+
+  // Extra Part 1: Billboard
+  {
+    const bodyRadiusTop = .4;
+    const bodyRadiusBottom = .2;
+    const bodyHeight = 2;
+    const bodyRadialSegments = 6;
+    const bodyGeometry = new THREE.CylinderGeometry(
+      bodyRadiusTop, bodyRadiusBottom, bodyHeight, bodyRadialSegments);
+
+    const headRadius = bodyRadiusTop * 0.8;
+    const headLonSegments = 12;
+    const headLatSegments = 5;
+    const headGeometry = new THREE.SphereGeometry(
+      headRadius, headLonSegments, headLatSegments);
+
+    function makeLabelCanvas(baseWidth, size, name) {
+      const borderSize = 2;
+      const ctx = document.createElement('canvas').getContext('2d');
+      const font = `${size}px bold sans-serif`;
+      ctx.font = font;
+      // measure how long the name will be
+      const textWidth = ctx.measureText(name).width;
+
+      const doubleBorderSize = borderSize * 2;
+      const width = baseWidth + doubleBorderSize;
+      const height = size + doubleBorderSize;
+      ctx.canvas.width = width;
+      ctx.canvas.height = height;
+
+      // need to set font again after resizing canvas
+      ctx.font = font;
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'center';
+
+      ctx.fillStyle = 'blue';
+      ctx.fillRect(0, 0, width, height);
+
+      // scale to fit but don't stretch
+      const scaleFactor = Math.min(1, baseWidth / textWidth);
+      ctx.translate(width / 2, height / 2);
+      ctx.scale(scaleFactor, 1);
+      ctx.fillStyle = 'white';
+      ctx.fillText(name, 0, 0);
+
+      return ctx.canvas;
+    }
+
+    function makePerson(x, labelWidth, size, name, color) {
+      const canvas = makeLabelCanvas(labelWidth, size, name);
+      const texture = new THREE.CanvasTexture(canvas);
+      // because our canvas is likely not a power of 2
+      // in both dimensions set the filtering appropriately.
+      texture.minFilter = THREE.LinearFilter;
+      texture.wrapS = THREE.ClampToEdgeWrapping;
+      texture.wrapT = THREE.ClampToEdgeWrapping;
+
+      const labelMaterial = new THREE.SpriteMaterial({
+        map: texture,
+        transparent: true,
+      });
+      const bodyMaterial = new THREE.MeshPhongMaterial({
+        color,
+        flatShading: true,
+      });
+
+      const root = new THREE.Object3D();
+      root.position.x = x;
+
+      const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+      root.add(body);
+      body.position.y = bodyHeight / 2;
+
+      const head = new THREE.Mesh(headGeometry, bodyMaterial);
+      root.add(head);
+      head.position.y = bodyHeight + headRadius * 1.1;
+
+      // if units are meters then 0.01 here makes size
+      // of the label into centimeters.
+      const labelBaseScale = 0.01;
+      const label = new THREE.Sprite(labelMaterial);
+      root.add(label);
+      label.position.y = head.position.y + headRadius + size * labelBaseScale;
+
+      label.scale.x = canvas.width * labelBaseScale;
+      label.scale.y = canvas.height * labelBaseScale;
+
+      root.scale.x = canvas.width * 0.03;
+      root.scale.y = canvas.width * 0.03;
+      root.scale.z = canvas.width * 0.03;
+      return root;
+    }
+
+    addObject(0, -2, makePerson(0, 150, 32, 'Billboard', 'purple'));
+
+  }
+
+  // Extra Part 2: Transparent cubes
+  {
+
+    const root = new THREE.Object3D();
+
+    const boxWidth = 1;
+    const boxHeight = 1;
+    const boxDepth = 1;
+    const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+
+    function makeInstance(geometry, color, x, y, z) {
+      [THREE.BackSide, THREE.FrontSide].forEach((side) => {
+        const material = new THREE.MeshPhongMaterial({
+          color,
+          opacity: 0.5,
+          transparent: true,
+          side,
+        });
+
+        const cube = new THREE.Mesh(geometry, material);
+        cube.position.set(x, y, z);
+        root.add(cube);
+      });
+    }
+
+    function hsl(h, s, l) {
+      return (new THREE.Color()).setHSL(h, s, l);
+    }
+
+    {
+      const d = 0.8;
+      makeInstance(geometry, hsl(0 / 8, 1, .5), -d, -d, -d);
+      makeInstance(geometry, hsl(1 / 8, 1, .5), d, -d, -d);
+      makeInstance(geometry, hsl(2 / 8, 1, .5), -d, d, -d);
+      makeInstance(geometry, hsl(3 / 8, 1, .5), d, d, -d);
+      makeInstance(geometry, hsl(4 / 8, 1, .5), -d, -d, d);
+      makeInstance(geometry, hsl(5 / 8, 1, .5), d, -d, d);
+      makeInstance(geometry, hsl(6 / 8, 1, .5), -d, d, d);
+      makeInstance(geometry, hsl(7 / 8, 1, .5), d, d, d);
+    }
+    root.scale.x = canvas.width * 0.02;
+    root.scale.y = canvas.width * 0.02;
+    root.scale.z = canvas.width * 0.02;
+    addObject(2, -2, root);
+  }
+
+
+  // Extra Part 3: Dynamic textures
+  const ctx = document.createElement('canvas').getContext('2d');
+  const texture = new THREE.CanvasTexture(ctx.canvas);
+  {
+    const boxWidth = 1;
+    const boxHeight = 1;
+    const boxDepth = 1;
+    const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+
+    ctx.canvas.width = 256;
+    ctx.canvas.height = 256;
+    ctx.fillStyle = '#FFF';
+    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    texture.needsUpdate = true;
+
+    const material = new THREE.MeshBasicMaterial({
+      map: texture,
+    });
+    const cube = new THREE.Mesh(geometry, material);
+    cube.scale.x = canvas.width * 0.04;
+    cube.scale.y = canvas.width * 0.04;
+    cube.scale.z = canvas.width * 0.04;
+
+    addObject(0,3,cube);
+  }
+
+  function randInt(min, max) {
+    if (max === undefined) {
+      max = min;
+      min = 0;
+    }
+    return Math.random() * (max - min) + min | 0;
+  }
+
+  function drawRandomDot(ctx) {
+    ctx.fillStyle = `#${randInt(0x1000000).toString(16).padStart(6, '0')}`;
+    ctx.beginPath();
+
+    const x = randInt(256);
+    const y = randInt(256);
+    const radius = randInt(10, 64);
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   function resizeRendererToDisplaySize(renderer) {
@@ -416,6 +607,9 @@ function main() {
       camera.aspect = canvas.clientWidth / canvas.clientHeight;
       camera.updateProjectionMatrix();
     }
+
+    drawRandomDot(ctx);
+    texture.needsUpdate = true;
 
     objects.forEach((obj, ndx) => {
       const speed = .1 + ndx * .05;
